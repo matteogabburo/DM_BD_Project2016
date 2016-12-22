@@ -14,6 +14,7 @@ These two set are stored in 'step1_collectingData/dataset_coordinates' and 'step
 ### Step 1 - Collecting data
 - **collectTweets.py** : Is a Python script used for collecting tweets and make the dataset
 - **parseTweets.py** : Is a Python script used for compress tweets collected by 'CollectTweets.py'
+- **datasetStatistics.py** : Is a Python script used for make simple statistics of the dataset
 - **~~changeStatusToJson.py~~** : TODO, it should transform files in 'Old' into a json file
 - **dataset_coordinates** : Folder that contain tweets with geolocation
   - **Old** : Folder that contain tweets in a different format (Not Json)
