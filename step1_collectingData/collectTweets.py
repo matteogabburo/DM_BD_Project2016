@@ -3,6 +3,7 @@
 import tweepy
 import time
 import os
+import json
 
 # Access data
 consumer_key = 'GnNshPqO6gq2hil2VKJcXmo84'
@@ -27,7 +28,9 @@ par_geocode = '40.812138,-73.935354,1000km' # Coordinates of New York
 par_since_id = '0'
 
 i = 1 # Index for coordinates
+global_i = i
 k = 1 # Index for places
+global_k = k
 j = 0 # Index for count tweets
 
 # Output file definition
@@ -49,6 +52,10 @@ if not os.path.isdir(folder_place):
 tweets = ''
 tweetsplace = ''
 
+# BackUp of dataset parameters
+t1 = time.time()
+backup_time = 600 # 10 minutes
+
 print('\033[34m\033[1mTweet Finder\033[21m\033[39m\n')
 
 while True:
@@ -62,7 +69,9 @@ while True:
 			print('COORDINATES : \t'+str(result.coordinates))	
 			print('TEXT : \t\t'+str(result.text))
 			print(' ]\033[39m\n')
-			tweets = tweets + str(result)
+			
+			res_json = json.dumps(result._json)
+			tweets = tweets + str(res_json) + '\n'
 
 			if i%filelen == 0:
 				day = str(time.strftime("%Y%m%d"))	
@@ -73,13 +82,14 @@ while True:
 				print('\033[35mMaking file named : \033[1m'+filename+'\033[21m\033[39m\n')		
 				
 				# Print on file
-				out_file = open(folder_coordinates+'/'+filename,"w")
+				out_file = open(folder_coordinate+'/'+filename,"w")
 				out_file.write(tweets)
 				out_file.close()
 				
 				tweets = ''
 
 			i = i+1
+			global_i = global_i + 1
 
 		# Check only tweet with place and/or coordinates
 		if result.place != None:
@@ -88,7 +98,9 @@ while True:
 			print('PLACE : \t'+str(result.place))	
 			print('TEXT : \t\t'+str(result.text))
 			print(' ]\033[39m\n')
-			tweetsplace = tweetsplace + str(result)
+
+			res_json = json.dumps(result._json)
+			tweetsplace = tweetsplace + str(res_json) + '\n'
 
 			if k%filelen == 0:
 				day = str(time.strftime("%Y%m%d"))	
@@ -106,12 +118,48 @@ while True:
 				tweetsplace = ''
 
 			k = k+1
+			global_k = global_k + 1
+			
+		
+		# Save all with time boundary
+		t2 = time.time()
+		if t2 - t1 >= backup_time:
+			day = str(time.strftime("%Y%m%d"))	
+			hour = str(time.strftime(":%H%M%S"))
+
+			filename = name_place+day+hour
+
+			print('\033[35mMaking file named : \033[1m'+filename+'\033[21m\033[39m\n')		
+		
+			# Print on file
+			out_file = open(folder_place+'/'+filename,"w")
+			out_file.write(tweetsplace)
+			out_file.close()
+		
+			tweetsplace = ''
+
+			filename = name_coordinate+day+hour
+
+			print('\033[35mMaking file named : \033[1m'+filename+'\033[21m\033[39m\n')		
+			
+			# Print on file
+			out_file = open(folder_coordinate+'/'+filename,"w")
+			out_file.write(tweets)
+			out_file.close()
+			
+			tweets = ''
+
+			# Reset k and i			
+			k = 1 
+			i = 1 
+
+		t1 = t2
 
 		par_since_id=result.id
 		
 		if j%nrpp == 0:		
-			print(':: '+ str(i-1) +' on '+ str(j) + ' found with coordinates')
-			print(':: '+ str(k-1) +' on '+ str(j) + ' found with places')
+			print(':: '+ str(global_i-1) +' on '+ str(j) + ' found with coordinates')
+			print(':: '+ str(global_k-1) +' on '+ str(j) + ' found with places')
 		#time.sleep(1)
 
 
