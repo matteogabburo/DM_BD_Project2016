@@ -1,6 +1,5 @@
 # This script should transform old data into a new json format
 
-
 import os
 import tweepy
 import re	
