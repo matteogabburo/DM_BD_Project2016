@@ -44,6 +44,7 @@ def addMoreRows(db, collection_name, documents):
 # dao.connect('geo_example')
 # res = dao.addOne('places',{"loc": [1, 1]})
 # res = dao.addMany('places',[{"loc": [1, 1]},{"loc": [1, 1]}])
+# dao.close()
 class Dao:
 
 	def __init__(self, host, port):
@@ -64,17 +65,11 @@ class Dao:
 		result = self.db[collection_name].insert_many(documents)
 		return result
 
-	# This function return a tupla contains the top right coordinate
-	# and the bottom left coordinate of all the results, given a 
-	# collection name
-	# NOTE : mongodb uses coordinates between 180 and -180
-	#def getMainBoxCoordinates(collection_name):
-	#	db.places.find( { coordinates : 
-	#			  { $geoWithin : 
-	#			    { $polygon : 
-	#			      [ [ 0 , 0 ] , [ 0 , 1 ] , [ 1 , 1 ] , [ 1 , 0 ] ] 
-	#	} } } )
+	def query(self, collection_name, query):
+		return self.db[collection_name].find(query)
 
+	def aggregate(self, collection_name, query):
+		return self.db[collection_name].aggregate(query)
 
 	def close(self):
 		self.client.close()	

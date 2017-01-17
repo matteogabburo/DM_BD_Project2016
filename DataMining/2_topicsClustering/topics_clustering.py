@@ -1,6 +1,13 @@
 #!/usr/bin/env python3.5
 import sys
-from dao import Dao
+
+# My imports
+sys.path.append('..')
+import db_utils.dao
+from db_utils.dao import Dao
+import models.url
+from models.url import Url
+sys.path.remove('..')
 
 # Topic clustering must: 
 # 1. Find the dimension of the grid, watching
@@ -14,19 +21,48 @@ from dao import Dao
 # 5. Store the results into another db
 
 
+# This function return a tupla contains the top right coordinate
+# and the bottom left coordinate of all the results
+# NOTE : mongodb uses coordinates between 180 and -180
+# NOTE2 : for large db this function does not work for memory exceed
+def getGridDimension(host, port, db_name):
+	dao = Dao(host, port)	
+	dao.connect(db_name)
+	
+	# find the four coordinates query
+	query = [
+	    { "$unwind": "$loc" },
+	    { "$group": { 
+		"_id": "$_id",
+		"lat": { "$first": "$loc" },
+		"lon": { "$last": "$loc" }
+	    }},
+	    { "$group": {
+		"_id": None,
+		"min_lat": { "$min": "$lat" },
+		"min_lon": { "$min": "$lon" },
+		"max_lat": { "$max": "$lat" },
+		"max_lon": { "$max": "$lon" }
+	    }}
+	]
+	
+	result_list = list(dao.aggregate('clicks',query))
+	result = dict(result_list[0])
+	bottom_left = (result['min_lat'],result['min_lon'])
+	top_right = (result['max_lat'],result['max_lon'])	
+	res = [bottom_left, top_right]
 
+	dao.close()
 
-def getGridDimension():
-	return
-
-
-
-
-
+	return res
 
 
 def main(args):
+	import pprint
+	print(getGridDimension('localhost', 27017, 'db_geo_index'))
 	return 0
 
 if __name__ == '__main__':
 	sys.exit(main(sys.argv))
+
+
