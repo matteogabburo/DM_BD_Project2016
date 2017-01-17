@@ -8,10 +8,10 @@
 class Db_stat:
 
 	def __init__(self, lat_max, lon_max, lat_min, lon_min):
-		self.lat_max = lat_max
-		self.lon_max = lon_max
-		self.lat_min = lat_min
-		self.lon_min = lon_min
+		self.lat_max = float(lat_max)
+		self.lon_max = float(lon_max)
+		self.lat_min = float(lat_min)
+		self.lon_min = float(lon_min)
 		self.modify = False
 	
 	def isModify(self):
@@ -20,7 +20,8 @@ class Db_stat:
 	def setModified(self):
 		self.modify = True
 
-	def updateLat(self, lat):		
+	def updateLat(self, lat):	
+		lat = float(lat)
 		if lat > self.lat_max :	
 			self.lat_max = lat
 			self.modify = True
@@ -28,7 +29,8 @@ class Db_stat:
 			self.lat_min = lat
 			self.modify = True
 
-	def updateLon(self, lon):		
+	def updateLon(self, lon):
+		lon = float(lon)	
 		if lon > self.lon_max :	
 			self.lon_max = lon
 			self.modify = True

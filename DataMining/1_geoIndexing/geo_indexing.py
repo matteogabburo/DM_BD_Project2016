@@ -113,6 +113,7 @@ def persist(filename, host_name, port, db_name, collection_name, collection_name
 				if url != None:
 				
 					loc = url.getCoordinates()
+					print(loc)
 					if l_db == None:
 						l_db = Db_stat(loc[0], loc[1], loc[0], loc[1])	
 						l_db.setModified()
@@ -123,27 +124,28 @@ def persist(filename, host_name, port, db_name, collection_name, collection_name
 					res = dao.addOne(collection_name, url.__dict__)
 				
 				counter = counter + 1					
-				if counter % (size // 20) == 0:
-					print(str(100 // (size / counter)) + ' % Done of \"'+ filename+'\"')
+				#if counter % (size // 20) == 0:
+					#print(str(100 // (size / counter)) + ' % Done of \"'+ filename+'\"')
 
-				# add lat_max, lon_max, lat_min and lon_min to db if are better
-				stat = list(dao.query(collection_name_dbstat, ''))
-				if len(stat) > 0:			
-					stat_dict = dict(stat[0])
-					if l_db.isModify() == True:
+			# add lat_max, lon_max, lat_min and lon_min to db if are better
+			stat = list(dao.query(collection_name_dbstat, ''))
+			if len(stat) > 0:			
+				stat_dict = dict(stat[0])
+				if l_db.isModify() == True:
 
-						doc_id = stat_dict["_id"] 
+					doc_id = stat_dict["_id"] 
 
-						if l_db.lat_max > stat_dict['lat_max']:
-							dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lat_max":l_db.lat_max}})
-						if l_db.lat_min < stat_dict['lat_min']:
-							dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lat_min":l_db.lat_min}})
-						if l_db.lon_max > stat_dict['lon_max']:
-							dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lon_max":l_db.lon_max}})
-						if l_db.lon_min < stat_dict['lon_min']:			
-							dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lon_min":l_db.lon_min}})
-				else :
-					dao.addOne(collection_name_dbstat, l_db.__dict__)
+					if l_db.lat_max > float(stat_dict['lat_max']):
+						dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lat_max":l_db.lat_max}})
+					if l_db.lat_min < float(stat_dict['lat_min']):
+						dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lat_min":l_db.lat_min}})
+					if l_db.lon_max > float(stat_dict['lon_max']):
+						dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lon_max":l_db.lon_max}})
+					if l_db.lon_min < float(stat_dict['lon_min']):			
+						dao.updateOne(collection_name_dbstat, {'_id': doc_id},{'$set':{"lon_min":l_db.lon_min}})
+			else :
+				dao.addOne(collection_name_dbstat, l_db.__dict__)
+
 			dao.close()
 	print('100 % Done of \"'+ filename+'\"')
 
@@ -197,6 +199,7 @@ def main(args):
 	dao.connect(db_name)
 	
 	generals_list = list(dao.query(collection_name_dbstat, ''))
+	print(generals_list)
 	db_stat = None
 	if len(generals_list) > 1:
 		for e in generals_list:
