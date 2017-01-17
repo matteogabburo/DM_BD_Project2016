@@ -1,15 +1,16 @@
 #!/usr/bin/env python3.5
 import sys
 import os
-import url
-
-import dao
-from dao import Dao
-import url
-from url import Url
-
 import time
 import threading
+
+# My imports
+sys.path.append('..')
+import db_utils.dao
+from db_utils.dao import Dao
+import models.url
+from models.url import Url
+sys.path.remove('..')
 
 # Open a file passed for parameter and return the text. If the file does not exist it return 'None'
 def openFile(filename):
@@ -120,8 +121,10 @@ def main(args):
 	file_list = getFilesList(args[1])
 	file_list.sort()
 
-	# How many threads works in the same moment
+	# How many threads works in the same moment	
 	n_threads = 5
+	if len(file_list) < n_threads:
+		n_threads = len(file_list)
 
 	for file_name in file_list:
 		if os.path.isfile(file_name):
@@ -134,7 +137,7 @@ def main(args):
 				while threading.active_count() > n_threads:
 					time.sleep(0.1) 
 					
-	while threading.active_count() > 0:
+	while threading.active_count() > 1:
 		time.sleep(0.1) 
 
 
