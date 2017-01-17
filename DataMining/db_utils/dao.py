@@ -66,10 +66,18 @@ class Dao:
 		return result
 
 	def query(self, collection_name, query):
-		return self.db[collection_name].find(query)
-
+		if query != '':
+			return self.db[collection_name].find(query)
+		else:
+			return self.db[collection_name].find()
 	def aggregate(self, collection_name, query):
 		return self.db[collection_name].aggregate(query)
+	
+	def updateOne(self, collection_name, id_doc, document):
+		return self.db[collection_name].update_one(id_doc, document, upsert=False)
+
+	def removeAll(self, collection_name):
+		self.db[collection_name].remove({})
 
 	def close(self):
 		self.client.close()	

@@ -19,6 +19,9 @@ class Url:
 	def setCoordinates(self, latitude, longitude):
 		self.loc = (latitude, longitude)
 
+	def getCoordinates(self):
+		return self.loc
+
 	def toString(self):
 		print(self.loc)
 		print(self.urls)
