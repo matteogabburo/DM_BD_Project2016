@@ -113,7 +113,6 @@ def persist(filename, host_name, port, db_name, collection_name, collection_name
 				if url != None:
 				
 					loc = url.getCoordinates()
-					print(loc)
 					if l_db == None:
 						l_db = Db_stat(loc[0], loc[1], loc[0], loc[1])	
 						l_db.setModified()
@@ -124,8 +123,8 @@ def persist(filename, host_name, port, db_name, collection_name, collection_name
 					res = dao.addOne(collection_name, url.__dict__)
 				
 				counter = counter + 1					
-				#if counter % (size // 20) == 0:
-					#print(str(100 // (size / counter)) + ' % Done of \"'+ filename+'\"')
+				if counter % (size // 20) == 0:
+					print(str(100 // (size / counter)) + ' % Done of \"'+ filename+'\"')
 
 			# add lat_max, lon_max, lat_min and lon_min to db if are better
 			stat = list(dao.query(collection_name_dbstat, ''))

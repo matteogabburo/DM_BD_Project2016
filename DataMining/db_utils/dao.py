@@ -70,6 +70,13 @@ class Dao:
 			return self.db[collection_name].find(query)
 		else:
 			return self.db[collection_name].find()
+	def bufferizzedQuery(self, collection_name, query, limit):
+		if query != '':
+			return self.db[collection_name].find(query).limit(limit)
+		else:
+			return self.db[collection_name].find().limit(limit)
+		
+
 	def aggregate(self, collection_name, query):
 		return self.db[collection_name].aggregate(query)
 	
