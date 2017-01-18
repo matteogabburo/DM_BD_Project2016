@@ -7,6 +7,7 @@ from math import radians, cos, sin, asin, sqrt
 sys.path.append('..')
 import db_utils.dao
 from db_utils.dao import Dao
+from db_utils.dao import GeoDao
 import models.url
 from models.url import Url
 from models.topic_clustering_matrix import Matrix
@@ -50,13 +51,39 @@ def main(args):
 	host = args[1]
 	port = int(args[2])
 	db_name = 'db_geo_index'	
+	collection_name = 'clicks'
 
 	max_loc, min_loc = getBoundaries(host, port, db_name)
 
-	s = 10
-	matrix = Matrix(max_loc, min_loc, s)
-
+	s = 100
+	matrix = Matrix(min_loc, max_loc, s)
 	matrix.toString()
+
+	# connect to geo dao
+	dao = GeoDao(host, port)
+	dao.connect(db_name, collection_name)
+
+	empty_cell_counter = 0
+	n_cells = 0
+	while matrix.hasNext():
+		locs = matrix.next()
+
+		bl = [locs[0],locs[1]]
+		tr = [locs[2],locs[3]]
+		
+		result = dao.getUrlsByBox(bl,tr)
+	
+		#do something with result
+		l_res = list(result)
+		if len(l_res) == 0:
+			empty_cell_counter = empty_cell_counter + 1		
+		n_cells = n_cells + 1
+
+	dao.close()
+
+	print('')
+	print('# cells : '+str(n_cells))	
+	print('# empty : '+str(empty_cell_counter))
 
 	return 0
 
