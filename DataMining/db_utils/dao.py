@@ -93,6 +93,17 @@ class Dao:
 	def __del__(self):
 		self.close()
 
+
+# EXAMPLE
+# host = 'localhost'
+# port = 27017
+# db_name = 'db_geo_index'	
+# dao = GeoDao(host, port)
+# dao.connect(db_name, 'clicks')
+# locBl = [45.378154, 11.580687]
+# locTr = [46.162651, 12.991187]
+# res = dao.getUrlsByBox(locBl, locTr)
+# print(list(res))
 class GeoDao(Dao):
 
 	def __init__(self, host, port):
@@ -112,26 +123,3 @@ class GeoDao(Dao):
 
 	def __del__(self):
 		self.close()
-
-
-def main(args):
-			
-	host = 'localhost'
-	port = 27017
-	db_name = 'db_geo_index'	
-
-	dao = GeoDao(host, port)
-	dao.connect(db_name, 'click')
-
-	result = dao.db['click'].insert_many([{"loc": [2, 5]},{"loc": [30, 5]},{"loc": [1, 2]},{"loc": [4, 4]}])  
-	
-
-
-
-	return 0
-
-if __name__ == '__main__':
-	sys.exit(main(sys.argv))
-
-
-
