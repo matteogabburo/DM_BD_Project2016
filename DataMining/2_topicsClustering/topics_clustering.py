@@ -53,7 +53,7 @@ def main(args):
 
 	max_loc, min_loc = getBoundaries(host, port, db_name)
 
-	s = 1
+	s = 10
 	matrix = Matrix(max_loc, min_loc, s)
 
 	matrix.toString()

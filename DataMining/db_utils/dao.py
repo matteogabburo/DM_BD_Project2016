@@ -1,3 +1,4 @@
+import sys
 import pymongo
 from pymongo import MongoClient, GEO2D
 
@@ -70,12 +71,12 @@ class Dao:
 			return self.db[collection_name].find(query)
 		else:
 			return self.db[collection_name].find()
+
 	def bufferizzedQuery(self, collection_name, query, limit):
 		if query != '':
 			return self.db[collection_name].find(query).limit(limit)
 		else:
 			return self.db[collection_name].find().limit(limit)
-		
 
 	def aggregate(self, collection_name, query):
 		return self.db[collection_name].aggregate(query)
@@ -91,5 +92,46 @@ class Dao:
 
 	def __del__(self):
 		self.close()
+
+class GeoDao(Dao):
+
+	def __init__(self, host, port):
+		Dao.__init__(self,host,port)		
+		self.collection = None		
+
+	def connect(self, db_name, collection):
+		Dao.connect(self, db_name)
+		self.collection = collection
+		self.db[collection].create_index([('loc', GEO2D)])
+
+
+	def getUrlsByBox(self, locBl, locTr):
+		query = {"loc": {"$within": {"$box": [locBl, locTr]}}}
+		return self.query(self.collection, query)
+
+
+	def __del__(self):
+		self.close()
+
+
+def main(args):
+			
+	host = 'localhost'
+	port = 27017
+	db_name = 'db_geo_index'	
+
+	dao = GeoDao(host, port)
+	dao.connect(db_name, 'click')
+
+	result = dao.db['click'].insert_many([{"loc": [2, 5]},{"loc": [30, 5]},{"loc": [1, 2]},{"loc": [4, 4]}])  
+	
+
+
+
+	return 0
+
+if __name__ == '__main__':
+	sys.exit(main(sys.argv))
+
 
 

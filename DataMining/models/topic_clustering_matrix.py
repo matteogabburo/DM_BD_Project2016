@@ -1,5 +1,4 @@
 #!/usr/bin/env python3.5
-import sys
 import geopy
 from geopy.distance import VincentyDistance
 from math import radians, sin, asin, cos, sqrt

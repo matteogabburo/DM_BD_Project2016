@@ -9,7 +9,7 @@
 class Url:
 
 	def __init__(self, latitude, longitude, urls):
-		self.loc = [latitude,longitude]
+		self.loc = [float(latitude),float(longitude)]
 		self.urls = []
 		self.urls = urls
 	
