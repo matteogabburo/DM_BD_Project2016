@@ -2,6 +2,8 @@
 import sys
 import numpy
 from math import radians, cos, sin, asin, sqrt
+from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
 
 # My imports
 sys.path.append('..')
@@ -11,6 +13,7 @@ from db_utils.dao import GeoDao
 import models.url
 from models.url import Url
 from models.topic_clustering_matrix import Matrix
+import utils.http_requests
 sys.path.remove('..')
 
 # Topic clustering must: 
@@ -46,22 +49,58 @@ def mapSpace():
 	print(matr)
 
 
+def getPlotsMap(host, port, db_name, collection):
+	# Get maps coordinate
+	dao = Dao(host, port)
+	dao.connect(db_name)
+
+	c_list = list(dao.query(collection, ''))
+	c_dict = dict(c_list[0])
+	
+	dao.close()
+
+	# Select the map
+	m = Basemap(projection='mill',llcrnrlat=int(c_dict['lat_min']),urcrnrlat=int(c_dict['lat_max']+1),llcrnrlon=int(c_dict['lon_min']),urcrnrlon=int(c_dict['lon_max']+1),resolution='i')
+
+	m.drawcoastlines()
+	m.drawcountries()
+	m.drawstates()
+	m.fillcontinents(color='#04BAE3',lake_color='#FFFFFF')
+	m.drawmapboundary(fill_color='#FFFFFF')
+
+	return m
+
+
 def main(args):
-		
+
+	# Parameters for the db
 	host = args[1]
 	port = int(args[2])
+	
+	# Parameters for the matrix
+	s = int(args[3])
+
+	# Parameters for http requests
+	max_waiting_time = 1 # 1s timeout for each request
+	l_fails = [] #list containing the fails url	
+
 	db_name = 'db_geo_index'	
 	collection_name = 'clicks'
 
+		
 	max_loc, min_loc = getBoundaries(host, port, db_name)
-
-	s = 100
+	
 	matrix = Matrix(min_loc, max_loc, s)
 	matrix.toString()
 
 	# connect to geo dao
 	dao = GeoDao(host, port)
 	dao.connect(db_name, collection_name)
+
+	# ===================================================================
+	# Get the plot map
+	m = getPlotsMap(host, port, db_name, 'globals')
+	# ===================================================================
 
 	empty_cell_counter = 0
 	n_cells = 0
@@ -74,9 +113,33 @@ def main(args):
 		result = dao.getUrlsByBox(bl,tr)
 	
 		#do something with result
+		l_url = []
 		l_res = list(result)
 		if len(l_res) == 0:
-			empty_cell_counter = empty_cell_counter + 1		
+			empty_cell_counter = empty_cell_counter + 1
+		elif len(l_res) > 0:
+
+			# ===================================================================
+			# Get the plot map
+			lon = bl[1] + (tr[1] - bl[1]) / 2
+			lat = bl[0] + (tr[0] - bl[0]) / 2	
+
+			x,y = m(lon,lat)
+			m.plot(x,y, 'ro') 
+			# ===================================================================
+
+			# extract url and put it in a list
+			for row in l_res:
+				d_row = dict(row)
+				urls = d_row['urls']
+				for url in urls:
+					l_url.append(url)
+					
+				# Get corpuses from of all the url into a cell
+				http_ret = get_corpuses(l_url, max_waiting_time, l_fails)
+				corpuses = ret[0]				
+				l_fails = list(set(l_fails + ret[1])) # merges fails list
+
 		n_cells = n_cells + 1
 
 	dao.close()
@@ -84,6 +147,11 @@ def main(args):
 	print('')
 	print('# cells : '+str(n_cells))	
 	print('# empty : '+str(empty_cell_counter))
+
+	plt.title("Geo Plotting of the full cells")
+	plt.show()
+
+	
 
 	return 0
 
