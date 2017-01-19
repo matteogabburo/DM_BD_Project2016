@@ -12,6 +12,12 @@ from nltk.tokenize import RegexpTokenizer
 from stop_words import get_stop_words
 from nltk.stem.porter import PorterStemmer
 
+# My import 
+# My imports
+sys.path.append('..')
+import utils.print_tools as pt
+sys.path.remove('..')
+
 
 # Open a file passed for parameter and return the text. If the file does not exist it return 'None'
 def open_file(filename):
@@ -23,6 +29,14 @@ def open_file(filename):
 		return text
 	else : 
 		return None
+
+
+
+#TODO documentation
+def write_on_file(out_filename, str):
+	out_file = open(out_filename ,"w")
+	out_file.write(corpuses)
+	out_file.close()
 
 
 # Parse the row retourning the representation of the row to an array with this format : 
@@ -262,18 +276,33 @@ def get_corpuses_by_file(filename, max_waiting_time, l_fails):
 # Given a set of urls, download all the 'good' corpus (exclude that are not in text/html 
 # format and http status 404 403 ecc) and returns a list of corpus : 
 # [['word1','word2'],[...]]
-def get_corpuses(urls_list, max_waiting_time, l_fails):
+def get_corpuses(urls_list, max_waiting_time, l_fails, log=True):
+
+	#elements for print
+	s_urls = len(urls_list)
+	counter = 0
+	loss = 0
 
 	corpuses = []
-	for url in urls_list:
+	for url in urls_list:		
 		ret = None	
 		out = get_url_text_corpus(url, max_waiting_time, l_fails)
+		# Print infos
+		counter += 1
+		pt.conditionalPrintCB(0,s_urls,counter,'\t'+str(counter)+'/'+str(s_urls), log)
+
 		ret = out[0]
 		l_fails = out[1]
-			
+		
 		if ret != None:		
 			corpuses.append(ret)
-	return [corpuses l_fails]
+		else:
+			loss += 1
+	# Print infos
+	pt.conditionalPrintCB(0,s_urls,counter,'\t'+str(counter)+'/'+str(s_urls)+'\t # loss : ' +str(loss), log)
+	pt.conditionalPrint('',log)
+	
+	return [corpuses, l_fails]
 
 def main(args):
 

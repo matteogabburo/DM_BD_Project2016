@@ -13,7 +13,7 @@ from db_utils.dao import GeoDao
 import models.url
 from models.url import Url
 from models.topic_clustering_matrix import Matrix
-import utils.http_requests
+import utils.http_requests as http
 sys.path.remove('..')
 
 # Topic clustering must: 
@@ -92,6 +92,7 @@ def main(args):
 	
 	matrix = Matrix(min_loc, max_loc, s)
 	matrix.toString()
+	print('')
 
 	# connect to geo dao
 	dao = GeoDao(host, port)
@@ -119,11 +120,12 @@ def main(args):
 			empty_cell_counter = empty_cell_counter + 1
 		elif len(l_res) > 0:
 
+			# compute the coordinates for the center of the cell
+			cluster_lon = bl[1] + (tr[1] - bl[1]) / 2
+			cluster_lat = bl[0] + (tr[0] - bl[0]) / 2
+
 			# ===================================================================
 			# Get the plot map
-			lon = bl[1] + (tr[1] - bl[1]) / 2
-			lat = bl[0] + (tr[0] - bl[0]) / 2	
-
 			x,y = m(lon,lat)
 			m.plot(x,y, 'ro') 
 			# ===================================================================
@@ -136,9 +138,18 @@ def main(args):
 					l_url.append(url)
 					
 				# Get corpuses from of all the url into a cell
-				http_ret = get_corpuses(l_url, max_waiting_time, l_fails)
-				corpuses = ret[0]				
-				l_fails = list(set(l_fails + ret[1])) # merges fails list
+				http_ret = http.get_corpuses(l_url, max_waiting_time, l_fails)
+				corpuses = http_ret[0]				
+				l_fails = list(set(l_fails + http_ret[1])) # merges fails list
+				
+				# ONLY FOR TEST : save all the corpus
+								
+
+				# Make lda on the corpuses
+				
+				# Save the topic list into the db
+				
+
 
 		n_cells = n_cells + 1
 
