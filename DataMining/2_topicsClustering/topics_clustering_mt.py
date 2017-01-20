@@ -92,21 +92,32 @@ class TopicClusteringThread(threading.Thread):
 		self.db_name = db_name
 		self.collection_name = collection_name
 		self.collection_topics_name = collection_topics_name
+		self.collection_corpuses_name = 'corpuses' # FOR TEST
 		self.bl = bl 
 		self.tr = tr
 		self.max_waiting_time = max_waiting_time
 		self.q_fails = q_fails
 	
 	def run(self):
+
+		# buffer size for insert in the db
+		buffer_size = 200 # n of documents
+
 		# connect to geo dao
 		dao = GeoDao(self.host_name, self.port)
 		dao.connect(self.db_name, self.collection_name)
 
 		result = dao.getUrlsByBox(self.bl,self.tr)
 	
+		dao.close()
+
 		#do something with result
 		l_url = []
 		l_res = list(result)
+
+		#sets of things 
+		set_of_corpuses = []
+		set_of_topics = []
 
 		if len(l_res) > 0:
 
@@ -124,6 +135,7 @@ class TopicClusteringThread(threading.Thread):
 				# extract all the fail urls from the shared queue
 				l_fails = []
 				
+				
 				# LOCK ===============================================
 				lock = threading.Lock()
 				lock.acquire() # will block if lock is already held
@@ -137,16 +149,16 @@ class TopicClusteringThread(threading.Thread):
 					self.q_fails.put(e)
 				lock.release()				
 				# ====================================================
+				
 	
 				# Get corpuses from of all the url into a cell
 				http_ret = http.get_corpuses(l_url, self.max_waiting_time, l_fails, False)
 				corpuses = http_ret[0]		
 
-				#lock.acquire() # will block if lock is already held
-				# add to the q_fails the elements that are not already present
+				
 				for e in http_ret[1]:	
 					self.q_fails.put(e)
-				#lock.release()
+
 				
 				#Free memory	
 				l_fails = None
@@ -155,35 +167,72 @@ class TopicClusteringThread(threading.Thread):
 				corpuses = [x for x in corpuses if x != []]
 
 				if len(corpuses) > 0:
-					'''
-					# ONLY FOR TEST : save all the corpus =============
-					print('Saving corpuses on DB ...', end = '\r')
-					corpuses_collection_name= 'corpuses_mini'
-							
+				
+					# ONLY FOR TEST : save all the corpus =============		
 					d_corpuses = {}
 					d_corpuses['loc'] = [cluster_lat,cluster_lon]
 					d_corpuses['corpuses'] = corpuses
 
-					
-					dao.addOne(corpuses_collection_name, d_corpuses)
+					set_of_corpuses.append(d_corpuses)
+
+					# if the dimension of the query is really big store it
+					# the db and free the memory
+					if len(set_of_corpuses) >= buffer_size:
+						print('[ Saving corpuses', end = '\r') # on DB for the coordinates : '+str(self.bl), end = '\r')
+						dao = GeoDao(self.host_name, self.port)
+						dao.connect(self.db_name, self.collection_corpuses_name)
+
+						# save the sets
+						dao.addMany(self.collection_corpuses_name, set_of_corpuses)
+
+						dao.close()
+												
+						set_of_corpuses = []
 					# =================================================
 
 					# Make lda on the corpuses
-					#print('Doing LDA ...', end = '\r')
-					l_topics = tmpLda(corpuses)					
-				
+					print('[ LDA ', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+					
+					#LDA==================================================
+					corpus,document_lda = lda.getTopicsFromDocs(corpuses,20,2)
+					l_topics = lda.getTopicsRanking(document_lda,corpus,20,2)
+
 					# Save the topic list into the db
-					# print('Saving topics on DB ...', end = '\r')
 					d_topics = {}
 					d_topics['loc'] = [cluster_lat,cluster_lon]
 					d_topics['topics'] = l_topics
 								
-					dao.addOne(self.collection_topics_name, d_topics)
-					'''
-					# For plotting
-					cell_full = True				
+					set_of_topics.append(d_topics)
 
-		dao.close()
+					# if the dimension of the query is really big store it
+					# the db and free the memory
+					if len(set_of_topics) >= buffer_size:
+						print('[ Saving topics', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+						dao = GeoDao(self.host_name, self.port)
+						dao.connect(self.db_name, self.collection_topics_name)
+
+						# save the sets
+						dao.addMany(self.collection_topics_name, set_of_topics)
+
+						dao.close()
+
+						set_of_topics = []
+			
+
+			if len(set_of_topics) > 0 or len(set_of_corpuses) > 0:
+				# connect to geo dao
+				dao = GeoDao(self.host_name, self.port)
+				dao.connect(self.db_name, self.collection_name)
+
+				# save the sets
+				if len(set_of_corpuses) > 0:
+					print('[ Saving corpuses', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+					dao.addMany(self.collection_corpuses_name, set_of_corpuses)
+				if len(set_of_topics) > 0:
+					print('[ Saving topics', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+					dao.addMany(self.collection_topics_name, set_of_topics)			
+
+				dao.close()
 
 		
 def main(args):
@@ -212,21 +261,26 @@ def main(args):
 	collection_name = 'clicks'
 	
 	# topic collection
-	collection_topics_name = 'topics_mini'
+	collection_topics_name = 'topics'
 
+	# false and the pricipals print don't work
+	log = True
 		
 	max_loc, min_loc = getBoundaries(host, port, db_name)
 	
+	# TEST ========================================
+	'''
+	min_loc = [43.701749, 11.171300]
+	max_loc = [46.935841, 15.342896]
+
+	print("ATTENZIONE : COORINATE TEST INSERITE")
+	'''
+	# =============================================
+
+
 	matrix = Matrix(min_loc, max_loc, s)
 	matrix.toString()
 	print('')
-
-	
-
-	# ===================================================================
-	# Get the plot map
-	m = getPlotsMap(host, port, db_name, 'globals')
-	# ===================================================================
 
 	empty_cell_counter = 0
 	n_cells = 0
@@ -237,11 +291,7 @@ def main(args):
 	# shared queue	
 	q_fails = Queue()
 
-	while matrix.hasNext() and threading.active_count() > 1:
-
-		# print the state of the process
-		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.nX * matrix.nY) +
-					 ' | Threads : ' + str(threading.active_count() - 1), True)		
+	while matrix.hasNext() :
 
 		# For the plotting		
 		cell_full = False
@@ -257,43 +307,50 @@ def main(args):
 		
 		# wait untill the thread numbers is equal to n_thread
 		while threading.active_count() > n_thread:
-			time.sleep(1) # delays for 5 seconds
+			time.sleep(1) # delays for 1 seconds
 
 		t = TopicClusteringThread(host, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails)
 		t.deamon = True				
 		t.start()
 		
-		# ===================================================================
-		# Get the plot map
-		if cell_full == True:
-			x,y = m(cluster_lon,cluster_lat)
-			m.plot(x,y, 'ro') 
-		# ===================================================================
+		n_cells = n_cells + 1	
 
-	
-		n_cells = n_cells + 1
-	
+		# print the state of the process
+		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.nX * matrix.nY) +
+					 ' | Threads : ' + str(threading.active_count() - 1), log)		
+
+	# print the state of the process
+	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.nX * matrix.nY) +
+				 ' | Threads : ' + str(threading.active_count() - 1), log)		
+	print('')
+
+
+	while threading.active_count() > 1 :
+		time.sleep(5)
+		#print('I\'m working ... | Threads open : '+str(threading.active_count())+'\t\t\t\t', end = '\r')
 
 	print('')
 	print('# cells : '+str(n_cells))	
-	print('# empty : '+str(empty_cell_counter))
-
-	plt.title("Geo Plotting of the full cells")
-	plt.show()
+	#print('# empty : '+str(empty_cell_counter))
 
 	end_time = time.time()
 	
-
 	#get the time of the entire process
 	final_time = end_time - start_time
 	
-	seconds_total = int(final_time)	
+	seconds_total = int(final_time)+1	
 	minutes_total = int(int(final_time) / 60)
 	hours_total = int(minutes_total / 60)
 
+	if hours_total > 0 :
+		minutes_total = hours_total % minutes_total
+	if minutes_total > 0:
+		seconds_total = minutes_total % seconds_total 
+
+	print('')
 	print('Execution time : '+ str(hours_total) +
-		' hours, '+str(hours_total % minutes_total)+
-		' minutes and '+str(minutes_total % seconds_total) + ' seconds')
+		' hours, '+str(minutes_total)+
+		' minutes and '+str(seconds_total) + ' seconds')
 
 	return 0
 
