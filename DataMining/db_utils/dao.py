@@ -120,6 +120,5 @@ class GeoDao(Dao):
 		query = {"loc": {"$within": {"$box": [locBl, locTr]}}}
 		return self.query(self.collection, query)
 
-
 	def __del__(self):
 		self.close()

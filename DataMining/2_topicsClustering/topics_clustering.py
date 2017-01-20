@@ -14,6 +14,8 @@ import models.url
 from models.url import Url
 from models.topic_clustering_matrix import Matrix
 import utils.http_requests as http
+import utils.topic_processing as lda
+import utils.print_tools as pt
 sys.path.remove('..')
 
 # Topic clustering must: 
@@ -71,7 +73,18 @@ def getPlotsMap(host, port, db_name, collection):
 	return m
 
 
+def tmpLda(texts, ntopic = 30, niteration = 10):
+	corpus,document_lda = lda.getTopicsFromDocs(texts,30,5)
+	ranking = lda.getTopicsRanking(document_lda,corpus,30,10)
+
+	return ranking
+
 def main(args):
+	
+	if len(args) == 1 or args[1] == '--h':
+		print('Parameters : [ hostname, port, s ]')
+		return 0
+
 
 	# Parameters for the db
 	host = args[1]
@@ -85,7 +98,12 @@ def main(args):
 	l_fails = [] #list containing the fails url	
 
 	db_name = 'db_geo_index'	
+	
+	# geoindex collection
 	collection_name = 'clicks'
+	
+	# topic collection
+	collection_topics_name = 'topics_mini'
 
 		
 	max_loc, min_loc = getBoundaries(host, port, db_name)
@@ -106,7 +124,14 @@ def main(args):
 	empty_cell_counter = 0
 	n_cells = 0
 	while matrix.hasNext():
+		# For the plotting		
+		cell_full = False
+
 		locs = matrix.next()
+
+		#actual position of the iterator
+		current = matrix.current
+		print('Current cell : '+ str(current), end = '\r')
 
 		bl = [locs[0],locs[1]]
 		tr = [locs[2],locs[3]]
@@ -124,12 +149,7 @@ def main(args):
 			cluster_lon = bl[1] + (tr[1] - bl[1]) / 2
 			cluster_lat = bl[0] + (tr[0] - bl[0]) / 2
 
-			# ===================================================================
-			# Get the plot map
-			x,y = m(lon,lat)
-			m.plot(x,y, 'ro') 
-			# ===================================================================
-
+			
 			# extract url and put it in a list
 			for row in l_res:
 				d_row = dict(row)
@@ -142,15 +162,46 @@ def main(args):
 				corpuses = http_ret[0]				
 				l_fails = list(set(l_fails + http_ret[1])) # merges fails list
 				
-				# ONLY FOR TEST : save all the corpus
+				# remove empty sublist
+				corpuses = [x for x in corpuses if x != []]
+
+				if len(corpuses) > 0:
+					'''
+					# ONLY FOR TEST : save all the corpus =============
+					print('Saving corpuses on DB ...', end = '\r')
+					corpuses_collection_name= 'corpuses_mini'
+							
+					d_corpuses = {}
+					d_corpuses['loc'] = [cluster_lat,cluster_lon]
+					d_corpuses['corpuses'] = corpuses
+
+					
+					dao.addOne(corpuses_collection_name, d_corpuses)
+					# =================================================
+
+					# Make lda on the corpuses
+					print('Doing LDA ...', end = '\r')
+					l_topics = tmpLda(corpuses)					
+				
+					# Save the topic list into the db
+					print('Saving topics on DB ...', end = '\r')
+					d_topics = {}
+					d_topics['loc'] = [cluster_lat,cluster_lon]
+					d_topics['topics'] = l_topics
 								
+					dao.addOne(collection_topics_name, d_topics)
+					
+					# For plotting
+					cell_full = True				
+					'''
+		# ===================================================================
+		# Get the plot map
+		if cell_full == True:
+			x,y = m(cluster_lon,cluster_lat)
+			m.plot(x,y, 'ro') 
+		# ===================================================================
 
-				# Make lda on the corpuses
-				
-				# Save the topic list into the db
-				
-
-
+	
 		n_cells = n_cells + 1
 
 	dao.close()

@@ -145,6 +145,7 @@ class Matrix:
 		else:
 			return True 
 
+	# TODO : PROBABLE BUG WITH THE CELLS( +1)
 	def next(self): # Python 3: def __next__(self)
 		if self.current[0] > self.nX:
 			self.current[0] = 0
