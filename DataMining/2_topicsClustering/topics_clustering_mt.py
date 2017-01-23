@@ -92,11 +92,13 @@ class TopicClusteringThread(threading.Thread):
 		self.db_name = db_name
 		self.collection_name = collection_name
 		self.collection_topics_name = collection_topics_name
-		self.collection_corpuses_name = 'corpuses' # FOR TEST
+		self.collection_corpuses_name = 'corpuses_trentino' # FOR TEST
 		self.bl = bl 
 		self.tr = tr
 		self.max_waiting_time = max_waiting_time
 		self.q_fails = q_fails
+
+		self.finish = False
 	
 	def run(self):
 
@@ -167,7 +169,8 @@ class TopicClusteringThread(threading.Thread):
 				corpuses = [x for x in corpuses if x != []]
 
 				if len(corpuses) > 0:
-				
+					a = 0
+
 					# ONLY FOR TEST : save all the corpus =============		
 					d_corpuses = {}
 					d_corpuses['loc'] = [cluster_lat,cluster_lon]
@@ -194,8 +197,9 @@ class TopicClusteringThread(threading.Thread):
 					print('[ LDA ', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
 					
 					#LDA==================================================
-					corpus,document_lda = lda.getTopicsFromDocs(corpuses,20,2)
-					l_topics = lda.getTopicsRanking(document_lda,corpus,20,2)
+					# nsteps, ntopics
+					corpus,document_lda = lda.getTopicsFromDocs(corpuses,2,20)
+					l_topics = lda.getTopicsRanking(document_lda,corpus,2,20)
 
 					# Save the topic list into the db
 					d_topics = {}
@@ -233,8 +237,11 @@ class TopicClusteringThread(threading.Thread):
 					dao.addMany(self.collection_topics_name, set_of_topics)			
 
 				dao.close()
-
 		
+			
+		# close thread
+		self.finish = True
+
 def main(args):
 	
 	start_time = time.time()
@@ -261,7 +268,7 @@ def main(args):
 	collection_name = 'clicks'
 	
 	# topic collection
-	collection_topics_name = 'topics'
+	collection_topics_name = 'topics_trentino'
 
 	# false and the pricipals print don't work
 	log = True
@@ -269,12 +276,11 @@ def main(args):
 	max_loc, min_loc = getBoundaries(host, port, db_name)
 	
 	# TEST ========================================
-	'''
-	min_loc = [43.701749, 11.171300]
-	max_loc = [46.935841, 15.342896]
+	# coordinate trentino	
+	min_loc = [45.690270, 10.399488]
+	max_loc = [46.569637, 12.008985]
 
 	print("ATTENZIONE : COORINATE TEST INSERITE")
-	'''
 	# =============================================
 
 
@@ -286,7 +292,8 @@ def main(args):
 	n_cells = 0
 
 	# Max number of thread
-	n_thread = 200
+	n_thread = 80
+	l_thread = []
 
 	# shared queue	
 	q_fails = Queue()
@@ -306,28 +313,38 @@ def main(args):
 		tr = [locs[2],locs[3]]
 		
 		# wait untill the thread numbers is equal to n_thread
+		'''
 		while threading.active_count() > n_thread:
 			time.sleep(1) # delays for 1 seconds
+		'''
+		while len(l_thread) > n_thread - 1:
+			time.sleep(1)
+			l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
+
 
 		t = TopicClusteringThread(host, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails)
-		t.deamon = True				
+		t.deamon = True
 		t.start()
-		
+
+		l_thread.append(t)
+
 		n_cells = n_cells + 1	
 
 		# print the state of the process
 		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.nX * matrix.nY) +
-					 ' | Threads : ' + str(threading.active_count() - 1), log)		
+					 ' | Threads : ' + str(len(l_thread)), log)		
 
 	# print the state of the process
 	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.nX * matrix.nY) +
-				 ' | Threads : ' + str(threading.active_count() - 1), log)		
+				 ' | Threads : ' + str(len(l_thread)), log)		
 	print('')
 
 
-	while threading.active_count() > 1 :
-		time.sleep(5)
-		#print('I\'m working ... | Threads open : '+str(threading.active_count())+'\t\t\t\t', end = '\r')
+	while len(l_thread) > 0 :
+		time.sleep(3)		
+		print('I\'m working ... | Remaining threads open : '+str(len(l_thread))+'\t\t\t\t', end = '\r')
+	
+		l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
 
 	print('')
 	print('# cells : '+str(n_cells))	
