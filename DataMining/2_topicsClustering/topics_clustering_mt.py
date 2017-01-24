@@ -298,6 +298,9 @@ def main(args):
 	# shared queue	
 	q_fails = Queue()
 
+	#Checkpoint
+	checkpoint = True
+
 	while matrix.hasNext() :
 
 		# For the plotting		
@@ -321,21 +324,31 @@ def main(args):
 			time.sleep(1)
 			l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
 
+		if checkpoint == True :
+			# connect to geo dao
+			dao = GeoDao(host, port)
+			dao.connect(db_name, collection_topics_name)
+			if len(list(dao.getUrlsByBox(bl,tr))):			
+				t = TopicClusteringThread(host, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails)
+				t.deamon = True
+				t.start()
+				l_thread.append(t)
+			dao.close()
+		else:
+			t = TopicClusteringThread(host, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails)
+			t.deamon = True
+			t.start()
+			l_thread.append(t)			
 
-		t = TopicClusteringThread(host, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails)
-		t.deamon = True
-		t.start()
-
-		l_thread.append(t)
 
 		n_cells = n_cells + 1	
 
 		# print the state of the process
-		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.nX * matrix.nY) +
+		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.numberOfCells) +
 					 ' | Threads : ' + str(len(l_thread)), log)		
 
 	# print the state of the process
-	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.nX * matrix.nY) +
+	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.numberOfCells) +
 				 ' | Threads : ' + str(len(l_thread)), log)		
 	print('')
 

@@ -92,7 +92,8 @@ class Matrix:
 
 		# current is used by the iterator
 		self.current = [0,0]
-	
+
+		self.numberOfCells = (self.nY+1) * (self.nX+1)
 	
 	# given the x and y matrix coordinates it return
 	# the map coordinates of the bottom left and the 
@@ -147,10 +148,10 @@ class Matrix:
 
 	# TODO : PROBABLE BUG WITH THE CELLS( +1)
 	def next(self): # Python 3: def __next__(self)
-		if self.current[0] > self.nX:
+		if self.current[0] >= self.nX:
 			self.current[0] = 0
 			self.current[1] = self.current[1] + 1
-			if self.current[1] > self.nY:
+			if self.current[1]-1 >= self.nY:
 				raise StopIteration
 		else:
 			self.current[0] = self.current[0] + 1	
@@ -164,9 +165,9 @@ class Matrix:
 		print('s (km) : \t\t\t'+str(self.s))
 		print('len of X edge (km) : \t\t'+str(self.lenX))
 		print('len of Y edge (km) : \t\t'+str(self.lenY))
-		print('len of X edge (#cells) : \t'+str(self.nX))
-		print('len of Y edge (#cells) : \t'+str(self.nY))
-		print('Number of cells : \t\t'+str(self.nY * self.nX))
+		print('len of X edge (#cells) : \t'+str(self.nX+1))
+		print('len of Y edge (#cells) : \t'+str(self.nY+1))
+		print('Number of cells : \t\t'+str(self.numberOfCells))
 		print('Current pos of iterator : \t'+str(self.current))
 		
 
