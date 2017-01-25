@@ -85,7 +85,7 @@ def tmpLda(texts, ntopic = 30, niteration = 10):
 
 # Definition of a class used for thread for parallelizing
 class TopicClusteringThread(threading.Thread):
-	def __init__(self, host_name, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails):
+	def __init__(self, host_name, port, db_name, collection_name, collection_topics_name, bl, tr, s, max_waiting_time, q_fails):
 		threading.Thread.__init__(self)
 		self.host_name = host_name
 		self.port = port
@@ -97,6 +97,8 @@ class TopicClusteringThread(threading.Thread):
 		self.tr = tr
 		self.max_waiting_time = max_waiting_time
 		self.q_fails = q_fails
+		# size of each cell of the grid
+		self.s = s
 
 		self.finish = False
 	
@@ -119,14 +121,19 @@ class TopicClusteringThread(threading.Thread):
 
 		#sets of things 
 		set_of_corpuses = []
-		set_of_topics = []
 
+		#dict for the topics of the cell 
+		d_topics = {}
+
+	
 		if len(l_res) > 0:
 
 			# compute the coordinates for the center of the cell
 			cluster_lon = self.bl[1] + (self.tr[1] - self.bl[1]) / 2
 			cluster_lat = self.bl[0] + (self.tr[0] - self.bl[0]) / 2
 			
+			corpuses = []
+
 			# extract url and put it in a list
 			for row in l_res:
 				d_row = dict(row)
@@ -155,8 +162,8 @@ class TopicClusteringThread(threading.Thread):
 	
 				# Get corpuses from of all the url into a cell
 				http_ret = http.get_corpuses(l_url, self.max_waiting_time, l_fails, False)
-				corpuses = http_ret[0]		
-
+				#corpuses = http_ret[0]		
+				corpuses += http_ret[0]		
 				
 				for e in http_ret[1]:	
 					self.q_fails.put(e)
@@ -168,76 +175,79 @@ class TopicClusteringThread(threading.Thread):
 				# remove empty sublist
 				corpuses = [x for x in corpuses if x != []]
 
-				if len(corpuses) > 0:
-					a = 0
 
-					# ONLY FOR TEST : save all the corpus =============		
-					d_corpuses = {}
-					d_corpuses['loc'] = [cluster_lat,cluster_lon]
-					d_corpuses['corpuses'] = corpuses
+			if len(corpuses) > 0:
 
-					set_of_corpuses.append(d_corpuses)
+				a = 0
 
-					# if the dimension of the query is really big store it
-					# the db and free the memory
-					if len(set_of_corpuses) >= buffer_size:
-						print('[ Saving corpuses', end = '\r') # on DB for the coordinates : '+str(self.bl), end = '\r')
-						dao = GeoDao(self.host_name, self.port)
-						dao.connect(self.db_name, self.collection_corpuses_name)
+				# ONLY FOR TEST : save all the corpus =============		
+				d_corpuses = {}
+				d_corpuses['loc'] = [cluster_lat,cluster_lon]
+				d_corpuses['corpuses'] = corpuses
 
-						# save the sets
-						dao.addMany(self.collection_corpuses_name, set_of_corpuses)
+				set_of_corpuses.append(d_corpuses)
 
-						dao.close()
-												
-						set_of_corpuses = []
-					# =================================================
+				# if the dimension of the query is really big store it
+				# the db and free the memory
+				if len(set_of_corpuses) >= buffer_size:
+					print('[ Saving corpuses', end = '\r') # on DB for the coordinates : '+str(self.bl), end = '\r')
+					dao = GeoDao(self.host_name, self.port)
+					dao.connect(self.db_name, self.collection_corpuses_name)
 
-					# Make lda on the corpuses
-					print('[ LDA ', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
-					
-					#LDA==================================================
-					# nsteps, ntopics
-					corpus,document_lda = lda.getTopicsFromDocs(corpuses,2,20)
-					l_topics = lda.getTopicsRanking(document_lda,corpus,2,20)
-
-					# Save the topic list into the db
-					d_topics = {}
-					d_topics['loc'] = [cluster_lat,cluster_lon]
-					d_topics['topics'] = l_topics
-								
-					set_of_topics.append(d_topics)
-
-					# if the dimension of the query is really big store it
-					# the db and free the memory
-					if len(set_of_topics) >= buffer_size:
-						print('[ Saving topics', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
-						dao = GeoDao(self.host_name, self.port)
-						dao.connect(self.db_name, self.collection_topics_name)
-
-						# save the sets
-						dao.addMany(self.collection_topics_name, set_of_topics)
-
-						dao.close()
-
-						set_of_topics = []
-			
-
-			if len(set_of_topics) > 0 or len(set_of_corpuses) > 0:
-				# connect to geo dao
-				dao = GeoDao(self.host_name, self.port)
-				dao.connect(self.db_name, self.collection_name)
-
-				# save the sets
-				if len(set_of_corpuses) > 0:
-					print('[ Saving corpuses', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+					# save the sets
 					dao.addMany(self.collection_corpuses_name, set_of_corpuses)
-				if len(set_of_topics) > 0:
-					print('[ Saving topics', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
-					dao.addMany(self.collection_topics_name, set_of_topics)			
 
-				dao.close()
-		
+					dao.close()
+											
+					set_of_corpuses = []
+				# =================================================
+
+				# Make lda on the corpuses
+				print('[ LDA of '+str(len(corpuses))+' corpuses', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+				
+				#LDA==================================================
+				# nsteps, ntopics
+				corpus,document_lda = lda.getTopicsFromDocs(corpuses,2,20)
+				l_topics = lda.getTopicsRanking(document_lda,corpus,2,20)
+
+				# Save the topic list into the db
+				d_topics['loc'] = [cluster_lat,cluster_lon]
+				d_topics['topics'] = l_topics
+				d_topics['s'] = self.s
+				
+				'''			
+				set_of_topics.append(d_topics)
+
+				# if the dimension of the query is really big store it
+				# the db and free the memory
+				if len(set_of_topics) >= buffer_size:
+					print('[ Saving topics', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+					dao = GeoDao(self.host_name, self.port)
+					dao.connect(self.db_name, self.collection_topics_name)
+
+					# save the sets
+					dao.addMany(self.collection_topics_name, set_of_topics)
+
+					dao.close()
+
+					set_of_topics = []
+				'''
+
+		if len(d_topics) > 0 or len(set_of_corpuses) > 0:
+			# connect to geo dao
+			dao = GeoDao(self.host_name, self.port)
+			dao.connect(self.db_name, self.collection_name)
+
+			# save the sets
+			if len(set_of_corpuses) > 0:
+				print('[ Saving corpuses', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+				dao.addMany(self.collection_corpuses_name, set_of_corpuses)
+			if len(d_topics) > 0:
+				print('[ Saving topics  ', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
+				# dao.addMany(self.collection_topics_name, set_of_topics)			
+				dao.addOne(self.collection_topics_name, d_topics)		
+
+			dao.close()
 			
 		# close thread
 		self.finish = True
@@ -268,7 +278,7 @@ def main(args):
 	collection_name = 'clicks'
 	
 	# topic collection
-	collection_topics_name = 'topics_trentino'
+	collection_topics_name = 'topics_trentino_test'
 
 	# false and the pricipals print don't work
 	log = True
@@ -324,18 +334,22 @@ def main(args):
 			time.sleep(1)
 			l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
 
-		if checkpoint == True :
+		if checkpoint == False :
 			# connect to geo dao
 			dao = GeoDao(host, port)
 			dao.connect(db_name, collection_topics_name)
-			if len(list(dao.getUrlsByBox(bl,tr))):			
-				t = TopicClusteringThread(host, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails)
+			if len(list(dao.getUrlsByBox(bl,tr))) > 0:			
+				t = TopicClusteringThread(host, port, db_name, collection_name,
+							 collection_topics_name, bl, tr, s, 
+							max_waiting_time, q_fails)				
 				t.deamon = True
 				t.start()
 				l_thread.append(t)
 			dao.close()
 		else:
-			t = TopicClusteringThread(host, port, db_name, collection_name, collection_topics_name, bl, tr, max_waiting_time, q_fails)
+			t = TopicClusteringThread(host, port, db_name, collection_name, 
+						collection_topics_name, bl, tr, s,
+						 max_waiting_time, q_fails)
 			t.deamon = True
 			t.start()
 			l_thread.append(t)			
