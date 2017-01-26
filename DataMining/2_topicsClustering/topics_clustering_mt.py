@@ -8,6 +8,7 @@ import threading
 import time
 from queue import Queue
 import copy
+from hurry.filesize import size
 
 # My imports
 sys.path.append('..')
@@ -105,7 +106,7 @@ class TopicClusteringThread(threading.Thread):
 	def run(self):
 
 		# buffer size for insert in the db
-		buffer_size = 200 # n of documents
+		buffer_size = 20 # n of documents
 
 		# connect to geo dao
 		dao = GeoDao(self.host_name, self.port)
@@ -125,6 +126,7 @@ class TopicClusteringThread(threading.Thread):
 		#dict for the topics of the cell 
 		d_topics = {}
 
+		n_corpuses = 0
 	
 		if len(l_res) > 0:
 
@@ -175,8 +177,9 @@ class TopicClusteringThread(threading.Thread):
 				# remove empty sublist
 				corpuses = [x for x in corpuses if x != []]
 
-
-			if len(corpuses) > 0:
+				
+			n_corpuses = len(corpuses)
+			if n_corpuses > 0:
 
 				a = 0
 
@@ -200,20 +203,22 @@ class TopicClusteringThread(threading.Thread):
 					dao.close()
 											
 					set_of_corpuses = []
-				# =================================================
+				# =================================================		
 
 				# Make lda on the corpuses
-				print('[ LDA of '+str(len(corpuses))+' corpuses', end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
-				
+				print('[ LDA of '+str(len(corpuses))+' corpuses, '+
+					str(size(sys.getsizeof(corpuses))), end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
 				#LDA==================================================
 				# nsteps, ntopics
-				corpus,document_lda = lda.getTopicsFromDocs(corpuses,2,20)
-				l_topics = lda.getTopicsRanking(document_lda,corpus,2,20)
+				corpus,document_lda = lda.getTopicsFromDocs(corpuses,20,2)
+				# 20 topics DA 20 word
+				l_topics = lda.getTopicsRanking(document_lda,corpus,20,20)
 
 				# Save the topic list into the db
 				d_topics['loc'] = [cluster_lat,cluster_lon]
 				d_topics['topics'] = l_topics
 				d_topics['s'] = self.s
+				d_topics['ncorpuses'] = n_corpuses
 				
 				'''			
 				set_of_topics.append(d_topics)

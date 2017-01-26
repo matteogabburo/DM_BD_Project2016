@@ -103,7 +103,7 @@ def main(args):
 	collection_name = 'topics'
 	
 	# topic collection
-	collection_topics_name = 'topics_mini'
+	collection_topics_name = 'topics_trentino_test_approximated'
 
 		
 	max_loc, min_loc = getBoundaries(host, port, db_name)
@@ -114,7 +114,7 @@ def main(args):
 
 	# connect to geo dao
 	dao = GeoDao(host, port)
-	dao.connect(db_name, collection_name)
+	dao.connect(db_name, collection_topics_name)
 
 	# ===================================================================
 	# Get the plot map
@@ -152,48 +152,7 @@ def main(args):
 			cluster_lon = bl[1] + (tr[1] - bl[1]) / 2
 			cluster_lat = bl[0] + (tr[0] - bl[0]) / 2
 
-			'''
-			# extract url and put it in a list
-			for row in l_res:
-				d_row = dict(row)
-				urls = d_row['urls']
-				for url in urls:
-					l_url.append(url)
-					
-				# Get corpuses from of all the url into a cell
-				http_ret = http.get_corpuses(l_url, max_waiting_time, l_fails)
-				corpuses = http_ret[0]				
-				l_fails = list(set(l_fails + http_ret[1])) # merges fails list
-				
-				# remove empty sublist
-				corpuses = [x for x in corpuses if x != []]
-
-				if len(corpuses) > 0:
-					
-					# ONLY FOR TEST : save all the corpus =============
-					print('Saving corpuses on DB ...', end = '\r')
-					corpuses_collection_name= 'corpuses_mini'
-							
-					d_corpuses = {}
-					d_corpuses['loc'] = [cluster_lat,cluster_lon]
-					d_corpuses['corpuses'] = corpuses
-
-					
-					dao.addOne(corpuses_collection_name, d_corpuses)
-					# =================================================
-
-					# Make lda on the corpuses
-					print('Doing LDA ...', end = '\r')
-					l_topics = tmpLda(corpuses)					
-				
-					# Save the topic list into the db
-					print('Saving topics on DB ...', end = '\r')
-					d_topics = {}
-					d_topics['loc'] = [cluster_lat,cluster_lon]
-					d_topics['topics'] = l_topics
-								
-					dao.addOne(collection_topics_name, d_topics)
-					'''
+			
 			# For plotting
 			cell_full = True				
 					
