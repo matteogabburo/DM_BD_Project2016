@@ -22,14 +22,17 @@ sys.path.remove('..')
 
 # return all the topic that are bounded into the cell (bl, tr)
 def getGoodTopics(topics, bl, tr):
-	cell_topics = []				
+	cell_topics = []	
+		
+	#print(len(topics))
+
 	for topic in topics:
 		d_topic = dict(topic)
 		# get the center and the diameter of that topic and decide if the
 		# topic is into the cell
 		topic_loc = d_topic['loc']
 		topic_s = d_topic['s']
-	
+
 		if m.isIntoTheCell(topic_loc, topic_s, bl, tr):
 			cell_topics.append(topic)
 
@@ -94,7 +97,11 @@ def main(args):
 	dao_a_topics = GeoDao(host, port)
 	dao_a_topics.connect(db_name, collection_a_topics)
 
+	cells_words = []
+
 	while(matrix.hasNext()):
+		print(matrix.current)
+
 		locs = matrix.next()
 
 		bl = [locs[0],locs[1]]
@@ -103,11 +110,15 @@ def main(args):
 		# get all the topics from the approximated collection and sort them using s
 		a_topics = list(dao_a_topics.getUrlsByBox(bl, tr)) # approximated topics
 		b_topics = list(dao_topics.getUrlsByBox(bl, tr)) # base topics, lowest level of the tree
-		
+
+		'''print('=========')
+		print(len(a_topics))	
+		print(len(b_topics))'''
+
 		topics = getGoodTopics(a_topics, bl, tr)
-		topics += getGoodTopics(b_topics, bl, tr)
+		topics += getGoodTopics(b_topics, bl, tr)		
 		topics = getBestTopics(topics)
-		#print(len(topics))	
+			
 
 		# merge the topics and take the first one
 		if len(topics) > 0:
@@ -129,7 +140,12 @@ def main(args):
 			best_topic = sorted(best_topic, key=itemgetter(0), reverse=True)
 			top_words = [w[1] for w in best_topic[:5]]
 			
-			print(str(bl) + ' : '+str(top_words))
+			cells_words.append(top_words)
+
+			#print(str(bl) + ' : '+str(top_words))
+	
+	print('# ' + str(len(cells_words))+ ' on '+str(matrix.numberOfCells))
+			
 
 	dao_topics.close()
 	dao_a_topics.close()

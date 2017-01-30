@@ -67,13 +67,14 @@ def locIsInto(loc, bl, tr):
 
 # return true if the given coordinate with the given s(diameter) is into the cell, else return false
 def isIntoTheCell(loc, s, bl, tr):
-	s = s / 2
+	s = s / 2 - s / 16 # for avoid approximation error in the following steps
+	#print(s)
 	origin = geopy.Point(loc)
 	# East distance
 	dEst = VincentyDistance(kilometers=s).destination(origin, 0)
 	if locIsInto(dEst, bl, tr):
 		# North distance
-		dNorth = VincentyDistance(kilometers=s).destination(origin, 90)	
+		dNorth = VincentyDistance(kilometers=s).destination(origin, 90)
 		if locIsInto(dNorth, bl, tr):			
 			# West distance
 			dWest = VincentyDistance(kilometers=s).destination(origin, 180)		
@@ -205,19 +206,20 @@ class Matrix:
 		return self.getCellBT(self.current[0], self.current[1])
 
 	def hasNext(self):
-		if self.current[0] >= self.nX and self.current[1] >= self.nY:
+		if self.current[1] > self.nY:
 			return False
 		else:
 			return True 
 
 	def next(self):
-		if self.current[0] >= self.nX:
-			self.current[0] = 0
-			self.current[1] = self.current[1] + 1
-			if self.current[1]-1 >= self.nY:
-				raise StopIteration
+		if self.hasNext():
+			if self.current[0] >= self.nX:
+				self.current[0] = 0
+				self.current[1] = self.current[1] + 1
+			else:
+				self.current[0] = self.current[0] + 1	
 		else:
-			self.current[0] = self.current[0] + 1	
+			raise StopIteration
 
 		return self.getCellBT(self.current[0], self.current[1])
 
