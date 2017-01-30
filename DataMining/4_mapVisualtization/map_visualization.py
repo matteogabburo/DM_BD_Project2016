@@ -34,16 +34,13 @@ def initMap(mainBl, mainTr):
 	lon_max = mainTr[1]
 
 	# Select the map
-	m = Basemap(projection='mill',llcrnrlat=lat_min,urcrnrlat=lat_max,llcrnrlon=lon_min,urcrnrlon=lon_max,resolution='i')
+	m = Basemap(projection='mill',llcrnrlat=lat_min,urcrnrlat=lat_max,llcrnrlon=lon_min,urcrnrlon=lon_max,resolution='h')
 
-	'''m.drawcoastlines()
+	m.drawcoastlines()
 	m.drawcountries()
 	m.drawstates()
 	m.fillcontinents(color='#04BAE3',lake_color='#FFFFFF')
 	m.drawmapboundary(fill_color='#FFFFFF')
-	'''
-
-	m.bluemarble(scale = 10.0)
 
 	ax = plt.axes()
 
