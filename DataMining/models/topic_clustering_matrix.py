@@ -40,6 +40,70 @@ def xyHaversine(loc1, loc2):
 
 	return (rlat,rlon)
 
+
+# return the locs of the box with center 'loc' and diameter dim of the edge equal to s
+def getBox(loc, s):
+	s = s / 2
+	origin = geopy.Point(loc)
+
+	dEst = VincentyDistance(kilometers=s).destination(origin, 0)
+	dNorth = VincentyDistance(kilometers=s).destination(origin, 90)	
+	dWest = VincentyDistance(kilometers=s).destination(origin, 180)		
+	dSouth = VincentyDistance(kilometers=s).destination(origin, 270)
+			
+	bl = dWest[0], dSouth[1]
+	tr = dEst[0], dNorth[1]
+
+	return [bl, tr]
+
+
+# return True if the lock is into the area between bl and tr, if not return false
+def locIsInto(loc, bl, tr):
+
+	if loc[0] <= tr[0] and loc[0] >= bl[0] and loc[1] <= tr[1] and loc[1] >= bl[1]:
+		return True
+	else:
+		return False
+
+# return true if the given coordinate with the given s(diameter) is into the cell, else return false
+def isIntoTheCell(loc, s, bl, tr):
+	s = s / 2
+	origin = geopy.Point(loc)
+	# East distance
+	dEst = VincentyDistance(kilometers=s).destination(origin, 0)
+	if locIsInto(dEst, bl, tr):
+		# North distance
+		dNorth = VincentyDistance(kilometers=s).destination(origin, 90)	
+		if locIsInto(dNorth, bl, tr):			
+			# West distance
+			dWest = VincentyDistance(kilometers=s).destination(origin, 180)		
+			if locIsInto(dWest, bl, tr):									
+				# South distance
+				dSouth = VincentyDistance(kilometers=s).destination(origin, 270)
+				if locIsInto(dSouth, bl, tr):
+					return True
+	return False	
+
+# return true if the new cell is inside the second one, if not return false. new -> (nbl, ntr) old -> (bl, tr)
+def cellIsIntoTheCell(nbl, ntr, bl, tr):
+	
+	nbr = ntr[0],nbl[1]
+	ntl = nbl[0],ntr[1]
+
+	guard = False
+	
+	if locIsInto(nbl, bl, tr):
+		return True
+	if locIsInto(nbr, bl, tr):
+		return True
+	if locIsInto(ntr, bl, tr):
+		return True
+	if locIsInto(ntl, bl, tr):
+		return True
+
+	return guard	
+
+
 # Class used for manage the matrix on step 2
 # this matrix isn't charged in RAM and it is only logically
 # represented estimating the coordinates for each cell
@@ -146,8 +210,7 @@ class Matrix:
 		else:
 			return True 
 
-	# TODO : PROBABLE BUG WITH THE CELLS( +1)
-	def next(self): # Python 3: def __next__(self)
+	def next(self):
 		if self.current[0] >= self.nX:
 			self.current[0] = 0
 			self.current[1] = self.current[1] + 1

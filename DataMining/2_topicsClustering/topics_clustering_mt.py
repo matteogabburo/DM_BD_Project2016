@@ -11,7 +11,7 @@ import copy
 
 # My imports
 sys.path.append('..')
-import db_utils.dao
+import db_utils.dao as d
 from db_utils.dao import Dao
 from db_utils.dao import GeoDao
 import models.url
@@ -34,27 +34,6 @@ sys.path.remove('..')
 #	b. Make LDA on it (???)
 # 5. Store the results into another db
 
-
-# TODO readme
-# it return the max lat max lon min lat min lon from the db
-def getBoundaries(host, port, db_name):
-	# Get maps coordinate
-	dao = Dao(host, port)
-	dao.connect(db_name)
-	c_list = list(dao.query('globals', ''))
-	c_dict = dict(c_list[0])
-	dao.close()	
-	return (float(c_dict['lat_max']),float(c_dict['lon_max'])),(float(c_dict['lat_min']),float(c_dict['lon_min']))
-
-#TODO readme
-def mapSpace():
-	m = 10
-	n = 10
-	matr = a = numpy.zeros(shape=(m,n))
-
-	print(matr)
-
-
 def getPlotsMap(host, port, db_name, collection):
 	# Get maps coordinate
 	dao = Dao(host, port)
@@ -75,13 +54,6 @@ def getPlotsMap(host, port, db_name, collection):
 	m.drawmapboundary(fill_color='#FFFFFF')
 
 	return m
-
-
-def tmpLda(texts, ntopic = 30, niteration = 10):
-	corpus,document_lda = lda.getTopicsFromDocs(texts,30,5)
-	ranking = lda.getTopicsRanking(document_lda,corpus,30,10)
-
-	return ranking
 
 # Definition of a class used for thread for parallelizing
 class TopicClusteringThread(threading.Thread):
@@ -282,25 +254,22 @@ def main(args):
 	max_waiting_time = 1 # 1s timeout for each request
 	l_fails = [] #list containing the fails url	
 
-	db_name = 'db_geo_index'	
-	
-	# geoindex collection
-	collection_name = 'clicks'
-	
-	# topic collection
-	collection_topics_name = 'topics_trentino_test'
+	# db parameters
+	db_name = 'db_geo_index' # db name	
+	collection_name = 'clicks' # geoindex collection
+	collection_topics_name = 'topics_trentino_test' # topic collection
 
 	# false and the pricipals print don't work
 	log = True
 		
-	max_loc, min_loc = getBoundaries(host, port, db_name)
+	max_loc, min_loc = d.getBoundaries(host, port, db_name)
 	
 	# TEST ========================================
 	# coordinate trentino	
 	min_loc = [45.690270, 10.399488]
 	max_loc = [46.569637, 12.008985]
 
-	print("ATTENZIONE : COORINATE TEST INSERITE")
+	print("ATTENZIONE : COORDINATE TEST INSERITE")
 	# =============================================
 
 
