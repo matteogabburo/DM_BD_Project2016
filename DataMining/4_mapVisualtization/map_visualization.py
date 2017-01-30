@@ -1,8 +1,7 @@
 #!/usr/bin/env python3.5
 import sys
 from operator import itemgetter
-import geopy
-from geopy.distance import VincentyDistance
+import time
 
 # My imports
 sys.path.append('..')
@@ -23,8 +22,6 @@ sys.path.remove('..')
 # return all the topic that are bounded into the cell (bl, tr)
 def getGoodTopics(topics, bl, tr):
 	cell_topics = []	
-		
-	#print(len(topics))
 
 	for topic in topics:
 		d_topic = dict(topic)
@@ -90,6 +87,7 @@ def main(args):
 	# gen the matrix
 	matrix = Matrix(min_loc, max_loc, s)
 	matrix.toString()
+	print('')
 
 	# dbs
 	dao_topics = GeoDao(host, port)
@@ -99,9 +97,10 @@ def main(args):
 
 	cells_words = []
 
-	while(matrix.hasNext()):
-		print(matrix.current)
+	#start timer
+	start_time = time.time()
 
+	while(matrix.hasNext()):
 		locs = matrix.next()
 
 		bl = [locs[0],locs[1]]
@@ -110,6 +109,7 @@ def main(args):
 		# get all the topics from the approximated collection and sort them using s
 		a_topics = list(dao_a_topics.getUrlsByBox(bl, tr)) # approximated topics
 		b_topics = list(dao_topics.getUrlsByBox(bl, tr)) # base topics, lowest level of the tree
+		b_topics = []
 
 		'''print('=========')
 		print(len(a_topics))	
@@ -118,7 +118,6 @@ def main(args):
 		topics = getGoodTopics(a_topics, bl, tr)
 		topics += getGoodTopics(b_topics, bl, tr)		
 		topics = getBestTopics(topics)
-			
 
 		# merge the topics and take the first one
 		if len(topics) > 0:
@@ -131,27 +130,52 @@ def main(args):
 			
 			best_topic = None
 			best_coerence = 99999999 # an high number
+			#print('')
 			for topic in topics:		
+			#	print(topic[1])
 				if(abs(topic[1]) < best_coerence):
 					best_coerence = abs(topic[1])
 					best_topic = topic[0]
-			
+			#		print('\t'+str(topic[1]))
+					
+			#print('\t'+str(best_coerence))
 			# extract the top 5 words from the best topic
 			best_topic = sorted(best_topic, key=itemgetter(0), reverse=True)
-			top_words = [w[1] for w in best_topic[:5]]
+
+			top_words = [w[1] for w in best_topic[:20]]
 			
 			cells_words.append(top_words)
 
-			#print(str(bl) + ' : '+str(top_words))
+			print(str(bl) + ' : '+str(top_words))
 	
-	print('# ' + str(len(cells_words))+ ' on '+str(matrix.numberOfCells))
-			
+	print('')
+	print('# ' + str(len(cells_words))+ ' on '+str(matrix.numberOfCells))			
+
+	#get the time of the entire process ==================================
+	end_time = time.time()
+
+	final_time = end_time - start_time
+	
+	seconds_total = int(final_time)+1	
+	minutes_total = int(int(final_time) / 60)
+	hours_total = int(minutes_total / 60)
+
+	if hours_total > 0 :
+		minutes_total = hours_total % minutes_total
+	if minutes_total > 0:
+		seconds_total = minutes_total % seconds_total 
+
+	print('')
+	print('Execution time : '+ str(hours_total) +
+		' hours, '+str(minutes_total)+
+		' minutes and '+str(seconds_total) + ' seconds')
+
+	# ====================================================================
 
 	dao_topics.close()
 	dao_a_topics.close()
 	
-			
-
+	
 
 	return 0
 
