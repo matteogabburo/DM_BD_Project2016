@@ -232,6 +232,8 @@ def get_url_text_corpus(url, max_waiting_time, l_fails):
 			for word in stemmed_tokens:
 				if not any(char.isdigit() for char in word):
 					ret.append(word)
+
+			
 	
 			return [ret,l_fails]
 		else:
@@ -301,8 +303,60 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log=True):
 	# Print infos
 	pt.conditionalPrintCB(0,s_urls,counter,'\t'+str(counter)+'/'+str(s_urls)+'\t # loss : ' +str(loss), log)
 	pt.conditionalPrint('',log)
+
 	
+	# remove junk
+	corpuses = removeJunk(corpuses)	
+
 	return [corpuses, l_fails]
+
+# function that remove junk from corpuses. It cut all the words with less frequency than avg/2 and
+# the words with frequency > than max frequence - avg/4 
+def removeJunk(corpuses):
+	words = {}
+	
+	highestFrequence = 0
+	# word frequence
+	for corpus in corpuses:
+		for word in corpus:
+			if word in words:
+				words[word] += 1
+			else:
+				words[word] = 1
+			if words[word] > highestFrequence:
+				highestFrequence = words[word]
+			
+	# avg frequence
+	avgFrequence = 0.0
+	for word in words:
+		avgFrequence += words[word]
+	if len(words) > 0:
+		avgFrequence = avgFrequence / len(words)
+
+		# thresholds
+		negativeThreshold = avgFrequence / 2
+		positiveThreshold = highestFrequence - avgFrequence / 4	
+
+		if negativeThreshold < 1:
+			negativeThreshold = 1
+
+		ret = []
+		# remove words from the text
+		for corpus in corpuses:
+			ret_corpus = []
+			for word in corpus:
+				if words[word] > negativeThreshold and words[word] < positiveThreshold:
+					ret_corpus.append(word)
+			if len(ret_corpus) > 20: 
+				ret.append(ret_corpus)
+
+		if len(ret) > 0:
+			return ret		
+		else:	
+			return []
+	else:
+		return []
+
 
 def main(args):
 

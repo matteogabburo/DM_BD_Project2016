@@ -1,3 +1,4 @@
+import sys
 from nltk.tokenize import RegexpTokenizer
 from stop_words import get_stop_words
 from nltk.stem.porter import PorterStemmer
@@ -5,6 +6,7 @@ from gensim import corpora, models
 from itertools import chain
 import gensim
 from pymining import itemmining
+from hurry.filesize import size
 
 ########################################################################
 ##Global Variables
@@ -41,6 +43,10 @@ def textProcessing(document):
 #return (n_docs,n_topics,topics)
 def getTopicsFromDocs(texts,n_topics,n_passes):
 	dictionary = corpora.Dictionary(texts)
+	
+	print('[ LDA of '+str(len(texts))+' corpuses, '+
+					str(size(sys.getsizeof(texts))) + ' | dict_len : '+str(len(dictionary)), end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')		
+
 	corpus = [dictionary.doc2bow(text) for text in texts]
 	ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=n_topics, id2word = dictionary, passes=n_passes)
 	return corpus, ldamodel

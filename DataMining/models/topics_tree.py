@@ -167,11 +167,13 @@ class TopicsTree:
 						l_topicupdated.append([self.mergeavg(d_wordsweight[word]),word])
 
 					# add the different words with the probability multiplied for the number of urls
-					tmp_words = [[self.mergeavg(d_wordsweight[word]),word] for word in l_differentwords]				
+					tmp_words = [[self.mergeavg(d_wordsweight[word]),word] 
+							for word in l_differentwords]				
 					tmp_words = sorted(tmp_words, key=itemgetter(1))				
 
 					# restore the probabilities
-					tmp_words = [[self.mergeavg(d_wordsweight[word]),word] for word in l_differentwords]				
+					tmp_words = [[self.mergeavg(d_wordsweight[word]),word] 
+							for word in l_differentwords]				
 
 					l_topicupdated_container = []
 					l_topicupdated += tmp_words[:(topicForCell*2 - len(l_equalwords))]
@@ -179,7 +181,8 @@ class TopicsTree:
 					l_topicupdated_container.append(l_topicupdated)
 					
 					# insert the avg coerence between the two topics
-					l_topicupdated_container.append(self.mergeavg([l_merged_coerences[couple[0]],l_current_coerences[couple[1]]]))				
+					l_topicupdated_container.append(self.mergeavg([abs(l_merged_coerences[couple[0]]),
+									abs(l_current_coerences[couple[1]])]))				
 					finaltopics.append(l_topicupdated_container)
 
 				# SAVE THE PROGRESSES
@@ -290,7 +293,7 @@ class TopicsTree:
 					l_d_topics.append(self.merge(l_topics, m.s))	
 		
 			if len(l_d_topics) > 0:
-				print(len(l_d_topics))
+				print(' -> 'len(l_d_topics))
 				dao.connect(db_name, collection_out)
 				dao.addMany(collection_out, l_d_topics)
 		

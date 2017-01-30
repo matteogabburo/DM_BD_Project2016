@@ -8,7 +8,6 @@ import threading
 import time
 from queue import Queue
 import copy
-from hurry.filesize import size
 
 # My imports
 sys.path.append('..')
@@ -121,7 +120,7 @@ class TopicClusteringThread(threading.Thread):
 		l_res = list(result)
 
 		#sets of things 
-		set_of_corpuses = []
+		#set_of_corpuses = []
 
 		#dict for the topics of the cell 
 		d_topics = {}
@@ -181,9 +180,8 @@ class TopicClusteringThread(threading.Thread):
 			n_corpuses = len(corpuses)
 			if n_corpuses > 0:
 
-				a = 0
-
-				# ONLY FOR TEST : save all the corpus =============		
+				# ONLY FOR TEST : save all the corpus =============
+				'''		
 				d_corpuses = {}
 				d_corpuses['loc'] = [cluster_lat,cluster_lon]
 				d_corpuses['corpuses'] = corpuses
@@ -203,16 +201,23 @@ class TopicClusteringThread(threading.Thread):
 					dao.close()
 											
 					set_of_corpuses = []
+				'''
 				# =================================================		
 
 				# Make lda on the corpuses
-				print('[ LDA of '+str(len(corpuses))+' corpuses, '+
-					str(size(sys.getsizeof(corpuses))), end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
-				#LDA==================================================
+				'''print('[ LDA of '+str(len(corpuses))+' corpuses, '+
+					str(size(sys.getsizeof(corpuses))), end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')				'''
+				# LDA with LOCK for increasing the performance and the memory consume ===========
+				lock_lda = threading.Lock()
+				lock_lda.acquire() # will block if lock is already held
+
 				# nsteps, ntopics
 				corpus,document_lda = lda.getTopicsFromDocs(corpuses,20,2)
 				# 20 topics DA 20 word
 				l_topics = lda.getTopicsRanking(document_lda,corpus,20,20)
+
+				lock_lda.release()				
+				# ===============================================================================
 
 				# Save the topic list into the db
 				d_topics['loc'] = [cluster_lat,cluster_lon]
@@ -238,15 +243,15 @@ class TopicClusteringThread(threading.Thread):
 					set_of_topics = []
 				'''
 
-		if len(d_topics) > 0 or len(set_of_corpuses) > 0:
+		if len(d_topics) > 0: #or len(set_of_corpuses) > 0:
 			# connect to geo dao
 			dao = GeoDao(self.host_name, self.port)
 			dao.connect(self.db_name, self.collection_name)
 
 			# save the sets
-			if len(set_of_corpuses) > 0:
+			'''if len(set_of_corpuses) > 0:
 				print('[ Saving corpuses', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
-				dao.addMany(self.collection_corpuses_name, set_of_corpuses)
+				dao.addMany(self.collection_corpuses_name, set_of_corpuses)'''
 			if len(d_topics) > 0:
 				print('[ Saving topics  ', end = '\r') # for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')
 				# dao.addMany(self.collection_topics_name, set_of_topics)			
@@ -339,7 +344,7 @@ def main(args):
 			time.sleep(1)
 			l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
 
-		if checkpoint == False :
+		if checkpoint == True :
 			# connect to geo dao
 			dao = GeoDao(host, port)
 			dao.connect(db_name, collection_topics_name)
