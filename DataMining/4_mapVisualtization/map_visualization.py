@@ -43,12 +43,13 @@ def getBestTopics(topics):
 	final_topics = [] # list that contains the result topics		
 	for topic in topics:
 		t_locs = m.getBox(topic['loc'], topic['s'])			
-		
+
 		#check if t_locs is already inside area[]
 		guard = False
 		for area in areas:
-			guard = m.cellIsIntoTheCell(t_locs[0],t_locs[1], area[0],area[1])	
-		
+			if guard == False:
+				guard = m.cellIsIntoTheCell(t_locs[0],t_locs[1], area[0],area[1])	
+
 		if guard == False:
 			final_topics.append(topic)
 			areas.append(t_locs)		
@@ -105,8 +106,9 @@ def main(args):
 		
 		topics = getGoodTopics(a_topics, bl, tr)
 		topics += getGoodTopics(b_topics, bl, tr)
-		topics = getBestTopics(topics)	
-	
+		topics = getBestTopics(topics)
+		#print(len(topics))	
+
 		# merge the topics and take the first one
 		if len(topics) > 0:
 			cell_descriptor = tt.merge(topics, s)
@@ -127,7 +129,7 @@ def main(args):
 			best_topic = sorted(best_topic, key=itemgetter(0), reverse=True)
 			top_words = [w[1] for w in best_topic[:5]]
 			
-			print(top_words)
+			print(str(bl) + ' : '+str(top_words))
 
 	dao_topics.close()
 	dao_a_topics.close()

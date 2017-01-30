@@ -60,7 +60,7 @@ def getBox(loc, s):
 # return True if the lock is into the area between bl and tr, if not return false
 def locIsInto(loc, bl, tr):
 
-	if loc[0] <= tr[0] and loc[0] >= bl[0] and loc[1] <= tr[1] and loc[1] >= bl[1]:
+	if loc[0] < tr[0] and loc[0] > bl[0] and loc[1] < tr[1] and loc[1] > bl[1]:
 		return True
 	else:
 		return False
