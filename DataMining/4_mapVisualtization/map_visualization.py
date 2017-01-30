@@ -3,6 +3,9 @@ import sys
 from operator import itemgetter
 import time
 
+from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
+
 # My imports
 sys.path.append('..')
 import db_utils.dao as dao_f
@@ -18,6 +21,61 @@ sys.path.remove('..')
 # 2 get the s from the user and generate the grid
 # 3 for each cell of the grid query the db and take the biggest topic that are 
 #   big enaugh for the cell dimension
+
+
+
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+def initMap(mainBl, mainTr):
+
+	lat_min = mainBl[0]
+	lat_max = mainTr[0]
+	lon_min = mainBl[1]
+	lon_max = mainTr[1]
+
+	# Select the map
+	m = Basemap(projection='mill',llcrnrlat=lat_min,urcrnrlat=lat_max,llcrnrlon=lon_min,urcrnrlon=lon_max,resolution='i')
+
+	'''m.drawcoastlines()
+	m.drawcountries()
+	m.drawstates()
+	m.fillcontinents(color='#04BAE3',lake_color='#FFFFFF')
+	m.drawmapboundary(fill_color='#FFFFFF')
+	'''
+
+	m.bluemarble(scale = 10.0)
+
+	ax = plt.axes()
+
+	return m,ax
+
+def addCell(m, ax, loc,text):
+		
+	x,y = m(loc[1],loc[0])
+	point, = m.plot(x,y, 'ro')
+	
+	annotation = plt.text(x,y, text,fontsize=12,fontweight='bold',ha='left',va='bottom',color='k')
+	annotation.set_visible(False)
+
+	return [point,annotation]
+
+#globalvar
+points_with_annotation = []
+def on_move(event):
+	
+	visibility_changed = False
+	for point, annotation in points_with_annotation:
+		should_be_visible = (point.contains(event)[0] == True)
+
+		if should_be_visible != annotation.get_visible():
+			visibility_changed = True
+			annotation.set_visible(should_be_visible)
+
+	if visibility_changed:		
+		plt.draw()
+
+# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 
 # return all the topic that are bounded into the cell (bl, tr)
 def getGoodTopics(topics, bl, tr):
@@ -109,7 +167,6 @@ def main(args):
 		# get all the topics from the approximated collection and sort them using s
 		a_topics = list(dao_a_topics.getUrlsByBox(bl, tr)) # approximated topics
 		b_topics = list(dao_topics.getUrlsByBox(bl, tr)) # base topics, lowest level of the tree
-		b_topics = []
 
 		'''print('=========')
 		print(len(a_topics))	
@@ -132,21 +189,22 @@ def main(args):
 			best_coerence = 99999999 # an high number
 			#print('')
 			for topic in topics:		
-			#	print(topic[1])
 				if(abs(topic[1]) < best_coerence):
 					best_coerence = abs(topic[1])
 					best_topic = topic[0]
-			#		print('\t'+str(topic[1]))
-					
-			#print('\t'+str(best_coerence))
+			
 			# extract the top 5 words from the best topic
 			best_topic = sorted(best_topic, key=itemgetter(0), reverse=True)
 
-			top_words = [w[1] for w in best_topic[:20]]
-			
-			cells_words.append(top_words)
+			top_words = [w[1] for w in best_topic[:5]]
 
-			print(str(bl) + ' : '+str(top_words))
+			# compute the coordinates for the center of the cell
+			cluster_lon = bl[1] + (tr[1] - bl[1]) / 2
+			cluster_lat = bl[0] + (tr[0] - bl[0]) / 2
+
+			cells_words.append([[cluster_lat,cluster_lon], top_words])
+
+			print(str(matrix.current) + ' : '+str(top_words))
 	
 	print('')
 	print('# ' + str(len(cells_words))+ ' on '+str(matrix.numberOfCells))			
@@ -176,6 +234,70 @@ def main(args):
 	dao_a_topics.close()
 	
 	
+	# PLOT THE MAP========================================================
+
+	m,ax = initMap(min_loc, max_loc)
+	
+	for cell in cells_words:
+		points_with_annotation.append(addCell(m, ax, cell[0],cell[1]))
+		
+	#cursor = Cursor(ax)
+	plt.connect('motion_notify_event', on_move)
+
+
+	matrix.resetIterator()
+	parallel_lats = []
+	parallel_lons = []
+	parallel_tlats = []
+	parallel_tlons = []
+	meridian_lats = []
+	meridian_lons = []
+	meridian_tlats = []
+	meridian_tlons = []
+
+	#initialize parallels
+	for i in range(0,matrix.nY + 1):
+		parallel_lats.append([])
+		parallel_lons.append([])
+
+	while matrix.hasNext():
+
+		locs = matrix.next()		
+
+		# for meridians
+		if matrix.current[0] < matrix.nX:
+			if matrix.current[0] == matrix.nX -1:
+				meridian_tlats.append(locs[2])
+				meridian_tlons.append(locs[1])
+			else:
+				meridian_tlats.append(locs[0])
+				meridian_tlons.append(locs[1])
+		else:	
+			meridian_lats.append(meridian_tlats)
+			meridian_lons.append(meridian_tlons)
+			meridian_tlats = []	
+			meridian_tlons = []
+		
+		# for parallels
+		parallel_lats[matrix.current[0]].append(locs[0])
+		parallel_lons[matrix.current[0]].append(locs[1])		
+
+	# print meridian
+	for i in range(0,len(meridian_lats)):
+		x, y = m(meridian_lons[i], meridian_lats[i])
+		m.plot(x,y, marker=None, color='b')	
+	# print parallels
+	for i in range(0,len(parallel_lats)):
+		x, y = m(parallel_lons[i], parallel_lats[i])
+		m.plot(x,y, marker=None, color='b')	
+
+	#m.plot(y, x, marker=None, color='r')
+
+
+	m.drawcoastlines()
+
+	plt.title("Topics")
+	plt.show()
 
 	return 0
 

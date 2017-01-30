@@ -67,8 +67,7 @@ def locIsInto(loc, bl, tr):
 
 # return true if the given coordinate with the given s(diameter) is into the cell, else return false
 def isIntoTheCell(loc, s, bl, tr):
-	s = s / 2 - s / 16 # for avoid approximation error in the following steps
-	#print(s)
+	s = s / 2 - s / 8 # for avoid approximation error in the following steps
 	origin = geopy.Point(loc)
 	# East distance
 	dEst = VincentyDistance(kilometers=s).destination(origin, 0)
@@ -156,10 +155,13 @@ class Matrix:
 		self.nY = int(self.lenY / s) 
 
 		# current is used by the iterator
-		self.current = [0,0]
+		self.current = [-1,0]
 
 		self.numberOfCells = (self.nY+1) * (self.nX+1)
 	
+	def resetIterator(self):
+		self.current = [-1,0]
+
 	# given the x and y matrix coordinates it return
 	# the map coordinates of the bottom left and the 
 	# top right of the cell as (latbl,lonbl,lattr,lontr)
