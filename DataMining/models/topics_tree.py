@@ -121,11 +121,6 @@ def merge(l_topics, s):
 				w1 = weight1 * abs(l_merged_coerences[couple[0]])
 				w2 = weight2 * abs(l_current_coerences[couple[1]])
 
-				print('======')
-				print((str(abs(l_merged_coerences[couple[0]]))) +' * '+ str(weight1))
-				print((str(abs(l_current_coerences[couple[1]]))) +' * '+ str(weight2))
-				print(mergeavg([w1,w2]))
-
 				l_topicupdated_container.append(l_topicupdated)	
 			
 				# insert the avg coerence between the two topics

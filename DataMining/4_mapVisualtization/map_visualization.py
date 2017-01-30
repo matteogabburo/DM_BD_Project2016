@@ -114,11 +114,20 @@ def main(args):
 			# take the highest topic into the cell descriptor
 			final_topics = []
 			d_cell_descriptor = dict(cell_descriptor)	
-			topics = d_cell_descriptor['topics']	
-			#for topic in topics:		
-			#	print(topic)	
-				#final_topics.append(d_topic['topics'])
+			topics = d_cell_descriptor['topics']
 			
+			best_topic = None
+			best_coerence = 99999999 # an high number
+			for topic in topics:		
+				if(abs(topic[1]) < best_coerence):
+					best_coerence = abs(topic[1])
+					best_topic = topic[0]
+			
+			# extract the top 5 words from the best topic
+			best_topic = sorted(best_topic, key=itemgetter(0), reverse=True)
+			top_words = [w[1] for w in best_topic[:5]]
+			
+			print(top_words)
 
 	dao_topics.close()
 	dao_a_topics.close()
