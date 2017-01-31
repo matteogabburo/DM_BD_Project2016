@@ -22,9 +22,7 @@ sys.path.remove('..')
 # 3 for each cell of the grid query the db and take the biggest topic that are 
 #   big enaugh for the cell dimension
 
-
-
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# PLOT=======================================================================================
 
 def initMap(mainBl, mainTr):
 
@@ -71,7 +69,7 @@ def on_move(event):
 	if visibility_changed:		
 		plt.draw()
 
-# '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+# ===========================================================================================================
 
 
 # return all the topic that are bounded into the cell (bl, tr)
@@ -165,10 +163,6 @@ def main(args):
 		a_topics = list(dao_a_topics.getUrlsByBox(bl, tr)) # approximated topics
 		b_topics = list(dao_topics.getUrlsByBox(bl, tr)) # base topics, lowest level of the tree
 
-		'''print('=========')
-		print(len(a_topics))	
-		print(len(b_topics))'''
-
 		topics = getGoodTopics(a_topics, bl, tr)
 		topics += getGoodTopics(b_topics, bl, tr)		
 		topics = getBestTopics(topics)
@@ -183,12 +177,14 @@ def main(args):
 			topics = d_cell_descriptor['topics']
 			
 			best_topic = None
-			best_coerence = 99999999 # an high number
-			#print('')
-			for topic in topics:		
-				if(abs(topic[1]) < best_coerence):
+			best_coerence = -1 # a low number
+
+			for topic in topics:	
+				print(abs(topic[1]))
+				if(abs(topic[1]) > best_coerence):
 					best_coerence = abs(topic[1])
 					best_topic = topic[0]
+					print ('\t'+str(best_coerence))
 			
 			# extract the top 5 words from the best topic
 			best_topic = sorted(best_topic, key=itemgetter(0), reverse=True)

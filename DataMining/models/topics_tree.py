@@ -17,7 +17,6 @@ def merge(l_topics, s):
 
 	mergedTopic = {}
 	locs = []	
-	coerences = []	
 
 	# for having the weight of each word
 	d_wordsweight = {}
@@ -30,8 +29,8 @@ def merge(l_topics, s):
 		l_topic = d_topic['topics']
 		n_urls = int(d_topic['ncorpuses'])
 
-		# turn to positive all the coerences
-		l_topic = [[w[0],abs(w[1])] for w in l_topic]
+		# turn to positive all the coherences
+		#l_topic = [[w[0],abs(w[1])] for w in l_topic]
 
 		if not mergedTopic:
 			mergedTopic['topics'] = l_topic
@@ -48,8 +47,8 @@ def merge(l_topics, s):
 			merged_topic = mergedTopic['topics']				
 
 			# order l1 and l2 for maximize the coerence during the similiarity calculus
-			merged_topic = sorted(merged_topic, key=itemgetter(1))
-			l_topic = sorted(l_topic, key=itemgetter(1))
+			merged_topic = sorted(merged_topic, key=itemgetter(1), reverse = True)
+			l_topic = sorted(l_topic, key=itemgetter(1), reverse = True)
 
 			l_merged = [topic[0] for topic in merged_topic]
 			l_merged_coerences = [topic[1] for topic in merged_topic]
