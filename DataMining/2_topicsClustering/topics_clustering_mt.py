@@ -191,6 +191,29 @@ class TopicClusteringThread(threading.Thread):
 				lock_lda.release()				
 				# ===============================================================================
 
+				# modify the coherence of each topic
+				d_corpuses_words = {}
+				len_d_corpuses = 0
+				for corpus in corpuses:
+					for word in corpus:
+						len_d_corpuses += 1
+						if word in d_corpuses_words:
+							d_corpuses_words[word] += 1
+						else:
+							d_corpuses_words[word] = 1
+				new_topic_list = []	
+				for topic in l_topics:
+					coherence = 0
+					for word in topic[0]:
+						coherence += d_corpuses_words[word[1]]
+					new_topic_list.append(topic[0])
+					new_topic_list.append(coherence / len_d_corpuses)
+
+				l_topics = new_topic_list
+	
+				new_topic_list = []
+				d_corpuses_words = {}
+
 				# Save the topic list into the db
 				d_topics['loc'] = [cluster_lat,cluster_lon]
 				d_topics['topics'] = l_topics
