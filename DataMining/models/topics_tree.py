@@ -3,10 +3,206 @@ import sys
 from operator import itemgetter
 from math import sqrt
 
+
+from sklearn.feature_extraction.text import CountVectorizer
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
+from gensim.models.coherencemodel import CoherenceModel
+from sklearn.cluster import KMeans
+import operator
+
+
 sys.path.append('..')
 from models.topic_clustering_matrix import Matrix
 from db_utils.dao import GeoDao
 sys.path.remove('..')
+
+# ======================================================================
+def preprocessingTopicsClusters(clusters):
+	clusters.sort(key=lambda x: x[0])
+	last = clusters[0][0]
+	j = 0
+	new_clusters = []
+	for i in range(0,len(clusters),1):
+		if clusters[i][0] != last:
+			array = []
+			for clustroid_id, num_docs, topic_id, topic in clusters[j:i]:
+				array.append((num_docs,topic))
+			array = mergeTopicsSameClusters(array)
+			new_clusters.append(array)
+			j = i
+			last = clusters[i][0]
+	
+	array=[]
+	for clustroid_id, num_docs, topic_id, topic in clusters[j:len(clusters)]:
+		array.append((num_docs,topic))
+	array = mergeTopicsSameClusters(array)
+	new_clusters.append(array)
+	
+	return new_clusters
+
+def mergeTopicsSameClusters(topics):
+	new_coherence = .0
+	words = {}
+	tot_num_instances = 0
+	
+	for num_docs, topic in topics:
+		tot_num_instances = tot_num_instances + 1
+		#print("**")
+		#print(topic)
+		word_set = topic[0] 
+		coherence = topic[1]
+		new_coherence = float(new_coherence) + coherence
+		for weight, word in word_set:
+			if word not in words:
+				words[word] = .0
+			words[word] = float(words[word]) + float(weight)
+		
+	words = [(weight/float(tot_num_instances), str(word)) for (word, weight) in sorted(words.items(), key=operator.itemgetter(1), reverse=True)]#sorted(words.items(), reverse=True)]
+	
+	topic = (words,new_coherence/float(tot_num_instances))
+	
+	return (num_docs,topic)
+
+def mergeTopicsClusters(topics_list, number_of_words=10, number_of_documents=None):
+	#topics_list[x] = (number_of_documents, topic)
+	tot_num_docs = 0
+	new_coherence = .0
+	words = {}
+	
+	topics_list = preprocessingTopicsClusters(topics_list)
+	
+	for num_docs, topic in topics_list:
+		if len(topics_list) > 1:
+			tot_num_docs = tot_num_docs + num_docs
+		else:
+			tot_num_docs = 1
+			num_docs = 1
+		coherence = topic[1] 
+		word_set = topic[0]
+		#print(coherence)
+		new_coherence = float(new_coherence) + coherence * float(num_docs)
+		for weight, word in word_set:
+			if word not in words:
+				words[word] = .0
+			words[word] = float(words[word]) + float(weight) * float(num_docs)
+	
+	#if we have to consider the whole number of documents, but this clustering don't has clusters of other documents
+	if number_of_documents != None:
+		tot_num_docs = number_of_documents
+	
+	
+	words = [(weight/float(tot_num_docs), str(word)) for (word, weight) in sorted(words.items(), key=operator.itemgetter(1), reverse=True)[0:number_of_words]]
+	
+	topic = (words,new_coherence/float(tot_num_docs))
+	
+	return (tot_num_docs, topic)
+
+#get a cluster of the topics getted from the docs clustering
+#clustroids[index] = (n_docs, n_topics, clustroid_topic0, clustroid_topic1, ...) or (n_docs,n_topics,topics)
+def mergeClusters(clustroids, max_topics, words_per_topic, s):
+	#data description
+	"""
+	clustroids[x] = (number_of_documents, topics)
+	topics[x] = (coherence_coefficient, topic)
+	topic[x] = ((coefficient, word), ...)
+	"""
+	
+	tmp = []
+	locs = []
+	for clustroid in clustroids:
+		tmp.append((clustroid['ncorpuses'],clustroid['topics']))
+		locs.append(clustroid['loc'])
+
+	clustroids = tmp
+	
+	dictionary = {}
+	topics_only = []
+	topics_list = []
+	clustroid_id = 0
+	total_documents = 0
+	
+	for (number_of_documents, topics) in clustroids:
+		total_documents = total_documents + number_of_documents
+		topic_id = 0
+		#print("LUNGO?")
+		#print(len(topics))
+		for topic in topics:
+			topics_list.append((clustroid_id,number_of_documents,topic_id,topic))
+			#print(topic)
+			topic_id = topic_id + 1
+			words = []
+			#print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+			#print(topic)
+			for (coefficient, word) in topic[0]:
+				dictionary[word] = 1
+				words.append(word)
+			topics_only.append(" ".join(words))
+		clustroid_id = clustroid_id + 1
+	"""
+	topics_list = (clustroid_id, topic_id, topic)
+	"""
+	
+	"""
+	#preprocessing data:
+	*dictionary extraction
+	*topics convertion
+	"""
+	cv = CountVectorizer()#(vocabulary=dictionary)
+	X = cv.fit_transform(topics_only)
+	dictionary = cv.get_feature_names()
+	
+	#print(dictionary)
+	
+	X = X.toarray()
+	dictionary = np.array(dictionary)
+	
+	n, _ = X.shape
+	dist = np.zeros((n,n))
+	for i in range(n):
+		for j in range(n):
+			x,y = X[i,:], X[j,:]
+			dist[i,j] = np.sqrt(np.sum((x-y)**2))
+	dist = 1 - cosine_similarity(X)
+	
+	#clustering process
+	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	#K-MEANS
+	km = KMeans(n_clusters=max_topics)
+	km.fit(dist)
+	clusters = km.labels_.tolist()
+	#print(clusters)
+	#print(km)
+	
+	cluster_map = {}
+	for i in range(len(clusters)):
+		key = int(clusters[i]) + 1
+		if key not in cluster_map:
+			cluster_map[key] = []
+		cluster_map[key].append(topics_list[i])
+	
+	result = []
+	for label, topics in cluster_map.items():
+		res = mergeTopicsClusters(topics,words_per_topic,total_documents)
+		result.append(res[1])
+	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	
+	#formatting result
+	"""
+	create a list "result" composed by:
+	result = (number_of_documents, topics)
+	topics[x] = (coherence_coefficient, topic)
+	"""
+
+	d_mergedTopic = {}
+	d_mergedTopic['s'] = s
+	d_mergedTopic['topics'] = result
+	d_mergedTopic['ncorpuses'] = total_documents
+	d_mergedTopic['loc'] = [mergeavg([row[0] for row in locs]), mergeavg([row[1] for row in locs])]	
+
+	return (d_mergedTopic)
+
+# ======================================================================
 
 
 # TODO documentation
@@ -237,6 +433,40 @@ class TopicsTree:
 			self.l_matrixes.append(Matrix(self.mbl, self.mtr, dim))
 
 
+	def generate_cluster(self,host, port, db_name, collection_in, collection_out):
+		dao = GeoDao(host, port)
+
+		firstIteration = True
+		for m in self.l_matrixes:
+
+			if firstIteration == True:
+				dao.connect(db_name, collection_in)
+				firstIteration = False
+			
+	
+			l_topics = []
+			l_d_topics = []
+			
+			while m.hasNext():
+				locs = m.next()
+
+				bl = [locs[0],locs[1]]
+				tr = [locs[2],locs[3]]
+				
+				# I expecting sn topics for each call			
+				l_topics = list(dao.getUrlsByBox(bl,tr))
+
+				l_topics = [w for w in l_topics if float(w['s']) == (m.s/self.sn)]
+
+				if len(l_topics) > 0:
+					l_d_topics.append(clusterTopicsClustroids(l_topics, 20, 20, m.s))
+							
+			if len(l_d_topics) > 0:
+				dao.connect(db_name, collection_out)
+				dao.addMany(collection_out, l_d_topics)
+			
+		dao.close()		
+
 	# it generate the tree merging the element for each level
 	def generate(self, host, port, db_name, collection_in, collection_out):
 
@@ -265,11 +495,10 @@ class TopicsTree:
 
 				if len(l_topics) > 0:
 					l_d_topics.append(merge(l_topics, m.s))	
-		
+			
 			if len(l_d_topics) > 0:
 				dao.connect(db_name, collection_out)
 				dao.addMany(collection_out, l_d_topics)
-		
 		dao.close()
 
 

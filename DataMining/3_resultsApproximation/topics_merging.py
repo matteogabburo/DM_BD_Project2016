@@ -39,7 +39,7 @@ def main(args):
 
 	# tree generation
 	tree = TopicsTree(min_loc, max_loc, s, 4)
-	tree.generate(host, port, db_name, collection_in, collection_out)
+	tree.generate_cluster(host, port, db_name, collection_in, collection_out)
 	
 
 

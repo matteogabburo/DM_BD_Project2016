@@ -114,6 +114,13 @@ def main(args):
 		print('Parameters : [ hostname, port, s ]')
 		return 0
 
+	# Globals
+	N_WORDS_TOPICS = 20 
+	N_TOPICS = 20
+
+	# merge descriptor (1 = merge, 2 = mergeClusters)
+	merge_selector = 1
+
 	# Parameters for the db
 	host = args[1]
 	port = int(args[2])
@@ -162,6 +169,7 @@ def main(args):
 		# get all the topics from the approximated collection and sort them using s
 		a_topics = list(dao_a_topics.getUrlsByBox(bl, tr)) # approximated topics
 		b_topics = list(dao_topics.getUrlsByBox(bl, tr)) # base topics, lowest level of the tree
+		b_topics = []
 
 		topics = getGoodTopics(a_topics, bl, tr)
 		topics += getGoodTopics(b_topics, bl, tr)		
@@ -169,8 +177,12 @@ def main(args):
 
 		# merge the topics and take the first one
 		if len(topics) > 0:
-			cell_descriptor = tt.merge(topics, s)
-		
+			
+			# merge selector 
+			if merge_selector == 1:			
+				cell_descriptor = tt.merge(topics, s)
+			elif merge_selector == 2:
+				cell_descriptor = tt.mergeClusters(topics,N_TOPICS,N_WORDS_TOPICS,s)
 			# take the highest topic into the cell descriptor
 			final_topics = []
 			d_cell_descriptor = dict(cell_descriptor)	
@@ -180,11 +192,11 @@ def main(args):
 			best_coerence = -1 # a low number
 
 			for topic in topics:	
-				print(abs(topic[1]))
+				#print(abs(topic[1]))
 				if(abs(topic[1]) > best_coerence):
 					best_coerence = abs(topic[1])
 					best_topic = topic[0]
-					print ('\t'+str(best_coerence))
+				#	print ('\t'+str(best_coerence))
 			
 			# extract the top 5 words from the best topic
 			best_topic = sorted(best_topic, key=itemgetter(0), reverse=True)
