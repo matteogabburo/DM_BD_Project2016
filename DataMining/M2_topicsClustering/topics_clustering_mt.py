@@ -57,7 +57,7 @@ def getPlotsMap(host, port, db_name, collection):
 
 # Definition of a class used for thread for parallelizing
 class TopicClusteringThread(threading.Thread):
-	def __init__(self, host_name, port, db_name, collection_name, collection_topics_name, bl, tr, s, max_waiting_time, q_fails):
+	def __init__(self, host_name, port, db_name, collection_name, collection_topics_name, bl, tr, s, max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic):
 		threading.Thread.__init__(self)
 		self.host_name = host_name
 		self.port = port
@@ -72,8 +72,12 @@ class TopicClusteringThread(threading.Thread):
 		# size of each cell of the grid
 		self.s = s
 
+		self.lda_ntopics = lda_ntopics
+		self.lda_npasses = lda_npasses
+		self.lda_nwords4topic = lda_nwords4topic
+
 		self.finish = False
-	
+
 	def run(self):
 
 		# buffer size for insert in the db
@@ -84,7 +88,7 @@ class TopicClusteringThread(threading.Thread):
 		dao.connect(self.db_name, self.collection_name)
 
 		result = dao.getUrlsByBox(self.bl,self.tr)
-	
+
 		dao.close()
 
 		#do something with result
@@ -98,7 +102,7 @@ class TopicClusteringThread(threading.Thread):
 		d_topics = {}
 
 		n_corpuses = 0
-	
+
 		if len(l_res) > 0:
 
 			# compute the coordinates for the center of the cell
@@ -184,9 +188,9 @@ class TopicClusteringThread(threading.Thread):
 				lock_lda.acquire() # will block if lock is already held
 
 				# nsteps, ntopics
-				corpus,document_lda = lda.getTopicsFromDocs(corpuses,20,2)
+				corpus,document_lda = lda.getTopicsFromDocs(corpuses, self.lda_ntopics, self.lda_npasses)
 				# 20 topics DA 20 word
-				l_topics = lda.getTopicsRanking(document_lda,corpus,20,20)
+				l_topics = lda.getTopicsRanking(document_lda,corpus, self.lda_ntopics, self.lda_nwords4topic)
 
 				lock_lda.release()				
 				# ===============================================================================
@@ -258,9 +262,6 @@ class TopicClusteringThread(threading.Thread):
 		self.finish = True
 
 def main(args):
-	
-	start_time = time.time()
-
 	if len(args) == 1 or args[1] == '--h':
 		print('Parameters : [ hostname, port, s ]')
 		return 0
@@ -273,20 +274,15 @@ def main(args):
 	# Parameters for the matrix
 	s = int(args[3])
 
-	# Parameters for http requests
-	max_waiting_time = 1 # 1s timeout for each request
-	l_fails = [] #list containing the fails url	
-
-	# db parameters
 	db_name = 'db_geo_index' # db name	
-	collection_name = 'clicks' # geoindex collection
+	collection_name_urls = 'clicks' # geoindex collection
 	collection_topics_name = 'topics_trentino_test' # topic collection
+
+	max_waiting_time = 1 # 1s timeout for each request
 
 	# false and the pricipals print don't work
 	log = True
-		
-	max_loc, min_loc = d.getBoundaries(host, port, db_name)
-	
+
 	# TEST ========================================
 	# coordinate trentino	
 	min_loc = [45.690270, 10.399488]
@@ -294,7 +290,29 @@ def main(args):
 
 	print("ATTENZIONE : COORDINATE TEST INSERITE")
 	# =============================================
+	bounded_locs = [min_loc, max_loc]
 
+	# Max number of thread
+	n_thread = 80
+
+	lda_ntopics = 20
+	lda_npasses = 2 
+	lda_nwords4topic = 20
+
+	run(host, port, db_name, collection_name_urls, 'globals', collection_topics_name,s ,bounded_locs,n_thread, max_waiting_time , log, lda_ntopics, lda_npasses, lda_nwords4topic)
+
+
+def run(host, port, db_name, collection_name_urls, dbstat_collection_name, collection_topics_name,s ,bounded_locs,n_thread, max_waiting_time , log, lda_ntopics, lda_npasses, lda_nwords4topic):
+		
+	start_time = time.time()
+	# Parameters for http requests
+	
+	l_fails = [] #list containing the fails url	
+		
+	if bounded_locs != None:
+		min_loc, max_loc = bounded_locs[0], bounded_locs[1]
+	else:
+		min_loc, max_loc = d.getBoundaries(host, port, db_name, dbstat_collection_name)
 
 	matrix = Matrix(min_loc, max_loc, s)
 	matrix.toString()
@@ -303,8 +321,6 @@ def main(args):
 	empty_cell_counter = 0
 	n_cells = 0
 
-	# Max number of thread
-	n_thread = 80
 	l_thread = []
 
 	# shared queue	
@@ -326,7 +342,7 @@ def main(args):
 
 		bl = [locs[0],locs[1]]
 		tr = [locs[2],locs[3]]
-		
+
 		# wait untill the thread numbers is equal to n_thread
 		'''
 		while threading.active_count() > n_thread:
@@ -336,32 +352,35 @@ def main(args):
 			time.sleep(1)
 			l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
 
-		if checkpoint == True :
+		if checkpoint == True:
 			# connect to geo dao
+			
 			dao = GeoDao(host, port)
 			dao.connect(db_name, collection_topics_name)
-			if len(list(dao.getUrlsByBox(bl,tr))) > 0:			
-				t = TopicClusteringThread(host, port, db_name, collection_name,
+			if len(list(dao.getUrlsByBox(bl,tr))) == 0:
+	
+				t = TopicClusteringThread(host, port, db_name, collection_name_urls,
 							 collection_topics_name, bl, tr, s, 
-							max_waiting_time, q_fails)				
+							max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic)				
 				t.deamon = True
 				t.start()
 				l_thread.append(t)
+
 			dao.close()
 		else:
-			t = TopicClusteringThread(host, port, db_name, collection_name, 
-						collection_topics_name, bl, tr, s,
-						 max_waiting_time, q_fails)
+			t = TopicClusteringThread(host, port, db_name, collection_name_urls,
+						 collection_topics_name, bl, tr, s, 
+						max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic)
 			t.deamon = True
 			t.start()
 			l_thread.append(t)			
 
 
-		n_cells = n_cells + 1	
-
 		# print the state of the process
 		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.numberOfCells) +
 					 ' | Threads : ' + str(len(l_thread)), log)		
+		
+		n_cells = n_cells + 1	
 
 	# print the state of the process
 	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.numberOfCells) +
@@ -399,6 +418,7 @@ def main(args):
 		' minutes and '+str(seconds_total) + ' seconds')
 
 	return 0
+
 
 if __name__ == '__main__':
 	sys.exit(main(sys.argv))

@@ -3,6 +3,7 @@ import sys
 
 # My imports
 sys.path.append('..')
+import db_utils.dao as d
 from models.topics_tree import TopicsTree
 sys.path.remove('..')
 
@@ -12,6 +13,24 @@ sys.path.remove('..')
 # 3. Merge the topics using a merge function
 # 4. Save the computed topics into the db
 
+
+def run(host, port, db_name, dbstat_collection_name, collection_in, collection_out, bounded_locs, partitions, nlevels, merge_selector, ntopics, nwords, s):
+
+	if bounded_locs != None:
+		min_loc = bounded_locs[0]
+		max_loc = bounded_locs[1]
+	else:
+		min_loc, max_loc = d.getBoundaries(host, port, db_name, dbstat_collection_name)
+
+	# tree generation
+	tree = TopicsTree(min_loc, max_loc, s, nlevels, partitions)
+
+	if merge_selector == 1:
+		tree.generate_cluster(host, port, db_name, collection_in, collection_out, ntopics, nwords)
+	elif merge_selector == 2:
+		tree.generate(host, port, db_name, collection_in, collection_out, ntopics)
+	else :
+		print('ERROR : Merge function undefined')	
 
 def main(args):
 
@@ -35,14 +54,10 @@ def main(args):
 
 	print("ATTENZIONE : COORINATE TEST INSERITE")
 	# =============================================
-
-
-	# tree generation
-	tree = TopicsTree(min_loc, max_loc, s, 4)
-	tree.generate_cluster(host, port, db_name, collection_in, collection_out)
 	
-
-
+	run(host, port, db_name, 'globals', collection_in, collection_out, [min_loc, max_loc],4 ,4, 1, 20, 20, s)
+	
+	
 	return 0
 
 if __name__ == '__main__':

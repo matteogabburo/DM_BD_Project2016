@@ -4,11 +4,11 @@ from pymongo import MongoClient, GEO2D
 
 # TODO readme
 # it return the max lat max lon min lat min lon from the db
-def getBoundaries(host, port, db_name):
+def getBoundaries(host, port, db_name, collection_name):
 	# Get maps coordinate
 	dao = Dao(host, port)
 	dao.connect(db_name)
-	c_list = list(dao.query('globals', ''))
+	c_list = list(dao.query(collection_name, ''))
 	c_dict = dict(c_list[0])
 	dao.close()	
 	return (float(c_dict['lat_max']),float(c_dict['lon_max'])),(float(c_dict['lat_min']),float(c_dict['lon_min']))

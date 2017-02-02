@@ -130,18 +130,20 @@ def main(args):
 
 	# db_parameters
 	db_name = 'db_geo_index'
-	collection_topics = 'topics_trentino_test' # topics with min s
-	collection_a_topics = 'topics_trentino_test_approximated' # approximated topics
+	collection_topics = 'topics_mediumset' # topics with min s
+	collection_a_topics = 'topics_mediumset_approximated' # approximated topics
+	collection_dbstat = 'globals_mediumset'
 
 	# get the maximum map coordinates
-	max_loc, min_loc = dao_f.getBoundaries(host, port, db_name)
+	max_loc, min_loc = dao_f.getBoundaries(host, port, db_name, collection_dbstat)
 		
 	# TEST ========================================
 	# coordinate trentino	
+	'''
 	min_loc = [45.690270, 10.399488]
 	max_loc = [46.569637, 12.008985]
 
-	print("ATTENZIONE : COORINATE TEST INSERITE")
+	print("ATTENZIONE : COORINATE TEST INSERITE")'''
 	# =============================================
 
 	# gen the matrix

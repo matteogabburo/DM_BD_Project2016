@@ -123,7 +123,7 @@ def persist(filename, host_name, port, db_name, collection_name, collection_name
 					res = dao.addOne(collection_name, url.__dict__)
 				
 				counter = counter + 1					
-				if counter % (size // 20) == 0:
+				if counter % (size // 15) == 0:
 					print(str(100 // (size / counter)) + ' % Done of \"'+ filename+'\"')
 
 			# add lat_max, lon_max, lat_min and lon_min to db if are better
@@ -161,27 +161,21 @@ class GeoIndexingThread(threading.Thread):
 		self.collection_dbstat = collection_name_dbstat
 	def run(self):
 		persist(self.file_name, self.host_name, self.port, self.db_name, self.collection_name, self.collection_dbstat)
-			
-def main(args):
-	db_name = 'db_geo_index'
-	collection_name = 'clicks'
-	collection_name_dbstat = 'globals'
 	
-	# args[1] = directory, args[2] = db_host_name args[3] = db_port
 
+def run(db_host_name, db_port, directory, db_name, collection_name, collection_name_dbstat, n_threads):
+		
 	# get files names
-	file_list = getFilesList(args[1])
+	file_list = getFilesList(directory)
 	file_list.sort()
-
-	# How many threads works in the same moment	
-	n_threads = 5
+	
 	if len(file_list) < n_threads:
 		n_threads = len(file_list)
 
 	for file_name in file_list:
 		if os.path.isfile(file_name):
 
-			t = GeoIndexingThread(file_name, args[2], int(args[3]),
+			t = GeoIndexingThread(file_name, db_host_name, int(db_port),
 					  db_name, collection_name, collection_name_dbstat)
 			t.start()
 			
@@ -194,7 +188,7 @@ def main(args):
 
 
 	# if there are more than row in 'globals' merge them
-	dao = Dao(args[2], int(args[3]))
+	dao = Dao(db_host_name, int(db_port))
 	dao.connect(db_name)
 	
 	generals_list = list(dao.query(collection_name_dbstat, ''))
@@ -209,6 +203,22 @@ def main(args):
 		dao.removeAll(collection_name_dbstat)
 		dao.addOne(collection_name_dbstat, db_stat.__dict__)
 	dao.close()
+	return 0
+
+		
+def main(args):
+
+	db_name = 'db_geo_index'
+	collection_name = 'clicks'
+	collection_name_dbstat = 'globals'
+	n_threads = 5 # How many threads works in the same moment
+		
+	directory = args[1] 
+	db_host_name = args[2]
+	db_port = args[3]
+
+	run(db_host_name, db_port, directory, db_name, collection_name, collection_name_dbstat, n_threads)
+	
 	return 0
 
 if __name__ == '__main__':
