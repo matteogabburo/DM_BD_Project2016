@@ -130,9 +130,9 @@ def main(args):
 
 	# db_parameters
 	db_name = 'db_geo_index'
-	collection_topics = 'topics_mediumset' # topics with min s
-	collection_a_topics = 'topics_mediumset_approximated' # approximated topics
-	collection_dbstat = 'globals_mediumset'
+	collection_topics = 'topics_miniset' # topics with min s
+	collection_a_topics = 'topics_miniset_approximated' # approximated topics
+	collection_dbstat = 'globals_miniset'
 
 	# get the maximum map coordinates
 	max_loc, min_loc = dao_f.getBoundaries(host, port, db_name, collection_dbstat)
@@ -171,7 +171,7 @@ def main(args):
 		# get all the topics from the approximated collection and sort them using s
 		a_topics = list(dao_a_topics.getUrlsByBox(bl, tr)) # approximated topics
 		b_topics = list(dao_topics.getUrlsByBox(bl, tr)) # base topics, lowest level of the tree
-		b_topics = []
+		#b_topics = []
 
 		topics = getGoodTopics(a_topics, bl, tr)
 		topics += getGoodTopics(b_topics, bl, tr)		
@@ -182,7 +182,7 @@ def main(args):
 			
 			# merge selector 
 			if merge_selector == 1:			
-				cell_descriptor = tt.merge(topics, s)
+				cell_descriptor = tt.merge(topics, N_TOPICS, s)
 			elif merge_selector == 2:
 				cell_descriptor = tt.mergeClusters(topics,N_TOPICS,N_WORDS_TOPICS,s)
 			# take the highest topic into the cell descriptor
@@ -263,7 +263,8 @@ def main(args):
 	meridian_tlons = []
 
 	#initialize parallels
-	for i in range(0,matrix.nY + 1):
+	# TODO Check possible bug on + 2
+	for i in range(0,matrix.nY + 2):
 		parallel_lats.append([])
 		parallel_lons.append([])
 
@@ -286,6 +287,8 @@ def main(args):
 			meridian_tlons = []
 		
 		# for parallels
+		print(locs[0])
+
 		parallel_lats[matrix.current[0]].append(locs[0])
 		parallel_lons[matrix.current[0]].append(locs[1])		
 

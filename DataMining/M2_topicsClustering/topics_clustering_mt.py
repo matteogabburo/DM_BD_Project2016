@@ -205,15 +205,18 @@ class TopicClusteringThread(threading.Thread):
 							d_corpuses_words[word] += 1
 						else:
 							d_corpuses_words[word] = 1
-				new_topic_list = []	
+				new_topics_list = []	
 				for topic in l_topics:
 					coherence = 0
 					for word in topic[0]:
 						coherence += d_corpuses_words[word[1]]
+					new_topic_list = []
 					new_topic_list.append(topic[0])
 					new_topic_list.append(coherence / len_d_corpuses)
+			
+					new_topics_list.append(new_topic_list)
 
-				l_topics = new_topic_list
+				l_topics = new_topics_list
 	
 				new_topic_list = []
 				d_corpuses_words = {}
@@ -374,23 +377,24 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 			t.deamon = True
 			t.start()
 			l_thread.append(t)			
-
+		
+		
+		n_cells = n_cells + 1	
 
 		# print the state of the process
 		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.numberOfCells) +
 					 ' | Threads : ' + str(len(l_thread)), log)		
 		
-		n_cells = n_cells + 1	
 
 	# print the state of the process
-	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.numberOfCells) +
+	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells-1)+ ' on '+str(matrix.numberOfCells) +
 				 ' | Threads : ' + str(len(l_thread)), log)		
 	print('')
 
 
 	while len(l_thread) > 0 :
 		time.sleep(3)		
-		print('I\'m working ... | Remaining threads open : '+str(len(l_thread))+'\t\t\t\t', end = '\r')
+		#print('I\'m working ... | Remaining threads open : '+str(len(l_thread))+'\t\t\t\t', end = '\r')
 	
 		l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
 
