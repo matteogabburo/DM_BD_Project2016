@@ -67,7 +67,7 @@ def locIsInto(loc, bl, tr):
 
 # return true if the given coordinate with the given s(diameter) is into the cell, else return false
 def isIntoTheCell(loc, s, bl, tr):
-	s = s / 2 - s / 8 # for avoid approximation error in the following steps
+	s = s / 2 - s / 4 # for avoid approximation error in the following steps
 	origin = geopy.Point(loc)
 	# East distance
 	dEst = VincentyDistance(kilometers=s).destination(origin, 0)
@@ -102,6 +102,48 @@ def cellIsIntoTheCell(nbl, ntr, bl, tr):
 		return True
 
 	return guard	
+
+def isIntoTheCell_withPercentual(loc, s, bl, tr):
+	'''s = s / 2
+	origin = geopy.Point(loc)
+	
+	# TODO
+	cellEst = (tr[0], loc[1])
+	cellWest = (bl[0], loc[1])
+	cellNorth = (loc[0], loc[1])
+	cellSouth = (loc[0], loc[1])
+
+	# East distance
+	dEst = VincentyDistance(kilometers=s).destination(origin, 0)
+	dEstCell = 
+	# North distance
+	dNorth = VincentyDistance(kilometers=s).destination(origin, 90)
+	# West distance
+	dWest = VincentyDistance(kilometers=s).destination(origin, 180)		
+	# South distance
+	dSouth = VincentyDistance(kilometers=s).destination(origin, 270)
+	
+	return True
+'''
+
+def cellIsIntoTheCell_withPercentual(nbl, ntr, bl, tr):
+
+	nbr = ntr[0],nbl[1]
+	ntl = nbl[0],ntr[1]
+
+	guard = False
+	
+	if locIsInto(nbl, bl, tr):
+		return True
+	if locIsInto(nbr, bl, tr):
+		return True
+	if locIsInto(ntr, bl, tr):
+		return True
+	if locIsInto(ntl, bl, tr):
+		return True
+
+	return guard
+
 
 
 # Class used for manage the matrix on step 2

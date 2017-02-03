@@ -264,9 +264,9 @@ def main(args):
 
 	#initialize parallels
 	# TODO Check possible bug on + 2
-	for i in range(0,matrix.nY + 2):
+	'''for i in range(0,matrix.nY + 2):
 		parallel_lats.append([])
-		parallel_lons.append([])
+		parallel_lons.append([])'''
 
 	while matrix.hasNext():
 
@@ -287,8 +287,8 @@ def main(args):
 			meridian_tlons = []
 		
 		# for parallels
-		print(locs[0])
-
+		parallel_lats.append([])
+		parallel_lons.append([])
 		parallel_lats[matrix.current[0]].append(locs[0])
 		parallel_lons[matrix.current[0]].append(locs[1])		
 

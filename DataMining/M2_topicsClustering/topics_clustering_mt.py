@@ -76,9 +76,12 @@ class TopicClusteringThread(threading.Thread):
 		self.lda_npasses = lda_npasses
 		self.lda_nwords4topic = lda_nwords4topic
 
+		self.logs = None
 		self.finish = False
 
 	def run(self):
+
+		start_cell_time = time.time()
 
 		# buffer size for insert in the db
 		buffer_size = 20 # n of documents
@@ -92,7 +95,6 @@ class TopicClusteringThread(threading.Thread):
 		dao.close()
 
 		#do something with result
-		l_url = []
 		l_res = list(result)
 
 		#sets of things 
@@ -102,6 +104,11 @@ class TopicClusteringThread(threading.Thread):
 		d_topics = {}
 
 		n_corpuses = 0
+	
+		# logs for the cell
+		logs_cell = {}
+		logs_lda = {}
+		l_logs_http = []
 
 		if len(l_res) > 0:
 
@@ -113,15 +120,15 @@ class TopicClusteringThread(threading.Thread):
 
 			# extract url and put it in a list
 			for row in l_res:
+				l_url = []
 				d_row = dict(row)
 				urls = d_row['urls']
 				for url in urls:
 					l_url.append(url)
-	
+
 				# extract all the fail urls from the shared queue
 				l_fails = []
-				
-				
+
 				# LOCK ===============================================
 				lock = threading.Lock()
 				lock.acquire() # will block if lock is already held
@@ -136,7 +143,6 @@ class TopicClusteringThread(threading.Thread):
 				lock.release()				
 				# ====================================================
 				
-	
 				# Get corpuses from of all the url into a cell
 				http_ret = http.get_corpuses(l_url, self.max_waiting_time, l_fails, False)
 				#corpuses = http_ret[0]		
@@ -144,15 +150,18 @@ class TopicClusteringThread(threading.Thread):
 				
 				for e in http_ret[1]:	
 					self.q_fails.put(e)
-
 				
+				#LOGS dict ==================
+				http_logs = http_ret[2]
+				l_logs_http.append(http_logs)
+				#============================
+
 				#Free memory	
 				l_fails = None
 
 				# remove empty sublist
 				corpuses = [x for x in corpuses if x != []]
 
-				
 			n_corpuses = len(corpuses)
 			if n_corpuses > 0:
 
@@ -179,13 +188,15 @@ class TopicClusteringThread(threading.Thread):
 					set_of_corpuses = []
 				'''
 				# =================================================		
-
 				# Make lda on the corpuses
 				'''print('[ LDA of '+str(len(corpuses))+' corpuses, '+
 					str(size(sys.getsizeof(corpuses))), end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')				'''
 				# LDA with LOCK for increasing the performance and the memory consume ===========
 				lock_lda = threading.Lock()
 				lock_lda.acquire() # will block if lock is already held
+				
+				# for logs
+				start_lda_time = time.time()
 
 				# nsteps, ntopics
 				corpus,document_lda = lda.getTopicsFromDocs(corpuses, self.lda_ntopics, self.lda_npasses)
@@ -206,18 +217,30 @@ class TopicClusteringThread(threading.Thread):
 						else:
 							d_corpuses_words[word] = 1
 				new_topics_list = []	
+				original_coherences = []
+				my_coherences = []
 				for topic in l_topics:
 					coherence = 0
+					original_coherences.append(topic[1]) # for logs
 					for word in topic[0]:
 						coherence += d_corpuses_words[word[1]]
 					new_topic_list = []
 					new_topic_list.append(topic[0])
 					new_topic_list.append(coherence / len_d_corpuses)
-			
+					my_coherences.append(coherence / len_d_corpuses) # for logs
 					new_topics_list.append(new_topic_list)
 
 				l_topics = new_topics_list
+
+				end_lda_time = time.time()
 	
+				# logs lda
+				logs_lda['lda_time'] = end_lda_time - start_lda_time
+				logs_lda['lda_ntopics'] = self.lda_ntopics		
+				logs_lda['lda_npasses'] = self.lda_npasses
+				logs_lda['my_coherence'] = my_coherences
+				logs_lda['original_coherence'] = original_coherences
+
 				new_topic_list = []
 				d_corpuses_words = {}
 
@@ -261,7 +284,15 @@ class TopicClusteringThread(threading.Thread):
 
 			dao.close()
 			
+		end_cell_time = time.time()
+
+		# make logs
+		logs_cell['cell_time'] = end_cell_time - start_cell_time
+		logs_cell['http'] = l_logs_http
+		logs_cell['lda'] = logs_lda
+
 		# close thread
+		self.logs = logs_cell
 		self.finish = True
 
 def main(args):
@@ -332,6 +363,9 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 	#Checkpoint
 	checkpoint = True
 
+	#logs for each thread
+	logs_topic = {}
+	l_logs_threads = []
 	while matrix.hasNext() :
 
 		# For the plotting		
@@ -394,10 +428,12 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 
 	while len(l_thread) > 0 :
 		time.sleep(3)		
-		#print('I\'m working ... | Remaining threads open : '+str(len(l_thread))+'\t\t\t\t', end = '\r')
+		print('I\'m working ... | Remaining threads open : '+str(len(l_thread))+' '*50, end = '\r')
+		for t in l_thread:
+			if t.finish == True:
+				l_logs_threads.append(t.logs)
+		l_thread = [t for t in l_thread if t.isAlive() and t.finish == False]
 	
-		l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
-
 	print('')
 	print('# cells : '+str(n_cells))	
 	#print('# empty : '+str(empty_cell_counter))
@@ -406,15 +442,22 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 	
 	#get the time of the entire process
 	final_time = end_time - start_time
-	
+
+	# logs
+	logs_topic['time'] = final_time
+	#l_logs = [r for r in l_logs_threads if r != None]
+	logs_topic['threads'] = l_logs_threads
+
+	print(logs_topic)
+
 	seconds_total = int(final_time)+1	
 	minutes_total = int(int(final_time) / 60)
 	hours_total = int(minutes_total / 60)
 
 	if hours_total > 0 :
-		minutes_total = hours_total % minutes_total
+		minutes_total = minutes_total % 60
 	if minutes_total > 0:
-		seconds_total = minutes_total % seconds_total 
+		seconds_total = seconds_total % 60 
 
 	print('')
 	print('Execution time : '+ str(hours_total) +

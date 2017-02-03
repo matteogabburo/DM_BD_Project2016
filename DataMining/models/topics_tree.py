@@ -459,7 +459,7 @@ class TopicsTree:
 				l_topics = [w for w in l_topics if float(w['s']) == (m.s/self.sn)]
 
 				if len(l_topics) > 0:
-					l_d_topics.append(clusterTopicsClustroids(l_topics, ntopics, nwords, m.s))
+					l_d_topics.append(mergeClusters(l_topics, ntopics, nwords, m.s))
 							
 			if len(l_d_topics) > 0:
 				dao.connect(db_name, collection_out)

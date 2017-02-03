@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.5
 import sys
 import os
+import time
 
 import requests
 from bs4 import BeautifulSoup
@@ -188,18 +189,18 @@ def get_url_text_corpus(url, max_waiting_time, l_fails):
 		tmp = ''
 		oldc = ''
 
-		if document != None:	
+		if document != None:
+			document = document.replace('\t',' ').replace('\n',' ')
 			for c in document:
 				if c != '\n' and c != '\t':
 					if c == ' ':
 						if oldc != ' ':
 							tmp = tmp + c									
 					else :
-						tmp = tmp + c		
+						tmp = tmp + c
+		
 				oldc = c
 			document = tmp
-	
-			document
 
 			tokenizer = RegexpTokenizer(r'\w+')
 
@@ -280,6 +281,8 @@ def get_corpuses_by_file(filename, max_waiting_time, l_fails):
 # [['word1','word2'],[...]]
 def get_corpuses(urls_list, max_waiting_time, l_fails, log=True):
 
+	start_time = time.time()
+
 	#elements for print
 	s_urls = len(urls_list)
 	counter = 0
@@ -304,11 +307,30 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log=True):
 	pt.conditionalPrintCB(0,s_urls,counter,'\t'+str(counter)+'/'+str(s_urls)+'\t # loss : ' +str(loss), log)
 	pt.conditionalPrint('',log)
 
-	
 	# remove junk
-	corpuses = removeJunk(corpuses)	
+	junkres = removeJunk(corpuses)	
+	
+	end_time = time.time()
+	final_time = end_time - start_time	
 
-	return [corpuses, l_fails]
+	# logs for the stats
+	logs = {}
+	logs['nurls'] = counter
+	logs['nloss'] = loss
+	logs['time'] = final_time
+
+	corpuses = []
+	if len(junkres) > 0:
+		corpuses = junkres[0]
+
+		logs['j_nwords'] = junkres[1]
+		logs['j_nremovedwords'] = junkres[2]
+		logs['j_avgFrequence'] = junkres[3]
+		logs['j_varFrequence'] = junkres[4]
+	else:
+		logs['nloss'] = logs['nurls']
+
+	return [corpuses, l_fails, logs]
 
 # function that remove junk from corpuses. It cut all the words with less frequency than avg/2 and
 # the words with frequency > than max frequence - avg/4 
@@ -330,8 +352,19 @@ def removeJunk(corpuses):
 	avgFrequence = 0.0
 	for word in words:
 		avgFrequence += words[word]
+
 	if len(words) > 0:
 		avgFrequence = avgFrequence / len(words)
+
+	# variance 
+	varFrequence = 0.0
+	for word in words:
+		varFrequence += words[word] * words[word]
+	
+	if len(words) > 0:	
+		varFrequence = varFrequence / len(words) - avgFrequence	* avgFrequence	
+
+	if len(words) > 0:
 
 		# thresholds
 		negativeThreshold = avgFrequence / 2
@@ -342,16 +375,21 @@ def removeJunk(corpuses):
 
 		ret = []
 		# remove words from the text
+		nremovedwords = 0
+		nwords = 0
 		for corpus in corpuses:
 			ret_corpus = []
 			for word in corpus:
+				nwords += 1
 				if words[word] > negativeThreshold and words[word] < positiveThreshold:
 					ret_corpus.append(word)
+				else:
+					nremovedwords += 1
 			if len(ret_corpus) > 20: 
 				ret.append(ret_corpus)
 
 		if len(ret) > 0:
-			return ret		
+			return [ret, nwords, nremovedwords, avgFrequence, varFrequence] 	
 		else:	
 			return []
 	else:
