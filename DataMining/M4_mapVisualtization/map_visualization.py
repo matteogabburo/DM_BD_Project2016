@@ -89,6 +89,51 @@ def getGoodTopics(topics, bl, tr):
 	return cell_topics
 
 
+def getGoodTopics_percentual(topics, bl, tr):
+	cell_topics = []	
+
+	for topic in topics:
+		d_topic = dict(topic)
+		# get the center and the diameter of that topic and decide if the
+		# topic is into the cell
+		topic_loc = d_topic['loc']
+		topic_s = d_topic['s']
+
+		d_topic['cellPercent'] = m.isIntoTheCell_withPercentual(topic_loc, topic_s, bl, tr)[1]
+
+		cell_topics.append(d_topic)
+
+	return cell_topics
+
+def getBestTopics_percentual(topics):
+
+	topics = sorted(topics, key=itemgetter('s','cellPercent'), reverse=True)
+
+	# weight normalization
+	for t in topics:
+		l_topics = t['topics']
+		w = t['cellPercent']
+		for topic in l_topics:
+			for el in topic[0]:
+				el[0] = el[0] * w
+	
+	areas = [] # list that contains all the areas covered by the topic
+	final_topics = [] # list that contains the result topics		
+	for topic in topics:
+		t_locs = m.getBox(topic['loc'], topic['s'])			
+
+		#check if t_locs is already inside area[]
+		guard = False
+		for area in areas:
+			if guard == False:
+				guard = m.cellIsIntoTheCell(t_locs[0],t_locs[1], area[0],area[1])	
+
+		if guard == False:
+			final_topics.append(topic)
+			areas.append(t_locs)		
+	return final_topics
+
+
 # create the bag of topic that contains the big topics as possible for cover all the space
 def getBestTopics(topics):
 	topics = sorted(topics, key=itemgetter('s'), reverse=True)		
@@ -173,9 +218,13 @@ def main(args):
 		b_topics = list(dao_topics.getUrlsByBox(bl, tr)) # base topics, lowest level of the tree
 		#b_topics = []
 
-		topics = getGoodTopics(a_topics, bl, tr)
-		topics += getGoodTopics(b_topics, bl, tr)		
-		topics = getBestTopics(topics)
+		#topics = getGoodTopics(a_topics, bl, tr)
+		#topics += getGoodTopics(b_topics, bl, tr)		
+		#topics = getBestTopics(topics)		
+
+		topics = getGoodTopics_percentual(a_topics, bl, tr)
+		topics += getGoodTopics_percentual(b_topics, bl, tr)		
+		topics = getBestTopics_percentual(topics)
 
 		# merge the topics and take the first one
 		if len(topics) > 0:

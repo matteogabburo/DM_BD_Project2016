@@ -165,6 +165,8 @@ class GeoIndexingThread(threading.Thread):
 
 def run(db_host_name, db_port, directory, db_name, collection_name, collection_name_dbstat, n_threads):
 		
+	start_time = time.time()
+
 	# get files names
 	file_list = getFilesList(directory)
 	file_list.sort()
@@ -203,7 +205,13 @@ def run(db_host_name, db_port, directory, db_name, collection_name, collection_n
 		dao.removeAll(collection_name_dbstat)
 		dao.addOne(collection_name_dbstat, db_stat.__dict__)
 	dao.close()
-	return 0
+
+	end_time = time.time()
+
+	logs = {}
+	logs['time'] = end_time - start_time
+
+	return logs
 
 		
 def main(args):

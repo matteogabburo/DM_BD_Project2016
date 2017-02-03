@@ -91,8 +91,13 @@ def mergeTopicsClusters(topics_list, number_of_words=10, number_of_documents=Non
 	if number_of_documents != None:
 		tot_num_docs = number_of_documents
 	
-	
 	words = [(weight/float(tot_num_docs), str(word)) for (word, weight) in sorted(words.items(), key=operator.itemgetter(1), reverse=True)[0:number_of_words]]
+
+	sum_weight = 0.
+	for (weight,_) in words:
+		sum_weight = sum_weight + weight
+	
+	words = [(weight/sum_weight, str(word)) for (weight,word) in words]
 	
 	topic = (words,new_coherence/float(tot_num_docs))
 	

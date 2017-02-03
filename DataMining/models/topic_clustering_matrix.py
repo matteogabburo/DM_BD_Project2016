@@ -104,26 +104,39 @@ def cellIsIntoTheCell(nbl, ntr, bl, tr):
 	return guard	
 
 def isIntoTheCell_withPercentual(loc, s, bl, tr):
-	'''s = s / 2
+	s = s / 2
 	origin = geopy.Point(loc)
 	
 	# TODO
-	cellEst = (tr[0], loc[1])
-	cellWest = (bl[0], loc[1])
-	cellNorth = (loc[0], loc[1])
-	cellSouth = (loc[0], loc[1])
+	cellEst = geopy.Point(tr[0], loc[1])
+	cellWest = geopy.Point(bl[0], loc[1])
+	cellNorth = geopy.Point(loc[0], tr[1])
+	cellSouth = geopy.Point(loc[0], bl[1])
 
 	# East distance
 	dEst = VincentyDistance(kilometers=s).destination(origin, 0)
-	dEstCell = 
 	# North distance
 	dNorth = VincentyDistance(kilometers=s).destination(origin, 90)
 	# West distance
-	dWest = VincentyDistance(kilometers=s).destination(origin, 180)		
+	dWest = VincentyDistance(kilometers=s).destination(origin, 180)			
 	# South distance
-	dSouth = VincentyDistance(kilometers=s).destination(origin, 270)
+	dSouth = VincentyDistance(kilometers=s).destination(origin, 270)	
 	
-	return True
+	#calculus of the area of the main cell
+	area1 = haversine(bl, (bl[0],tr[1])) * haversine(bl, (tr[0],bl[1]))	
+	area2 = haversine((dWest[0],dSouth[1]), (dWest[0], dNorth[1])) * haversine((dWest[0],dSouth[1]), (dEst[0], dNorth[1]))	
+
+	print('=======')
+	print(area2)
+	print(area1)
+	print('')
+
+	if area2 > area1:
+		
+		return (True, float(area1) / float(area2))
+	else:
+		return (True,1)
+
 '''
 
 def cellIsIntoTheCell_withPercentual(nbl, ntr, bl, tr):
@@ -143,7 +156,7 @@ def cellIsIntoTheCell_withPercentual(nbl, ntr, bl, tr):
 		return True
 
 	return guard
-
+'''
 
 
 # Class used for manage the matrix on step 2

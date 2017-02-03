@@ -1,5 +1,6 @@
 #!/usr/bin/env python3.5
 import sys
+import time
 
 # My imports
 sys.path.append('..')
@@ -16,6 +17,8 @@ sys.path.remove('..')
 
 def run(host, port, db_name, dbstat_collection_name, collection_in, collection_out, bounded_locs, partitions, nlevels, merge_selector, ntopics, nwords, s):
 
+	start_time = time.time()
+
 	if bounded_locs != None:
 		min_loc = bounded_locs[0]
 		max_loc = bounded_locs[1]
@@ -30,7 +33,14 @@ def run(host, port, db_name, dbstat_collection_name, collection_in, collection_o
 	elif merge_selector == 2:
 		tree.generate(host, port, db_name, collection_in, collection_out, ntopics)
 	else :
-		print('ERROR : Merge function undefined')	
+		print('ERROR : Merge function undefined')
+
+	end_time = time.time()
+
+	logs = {}
+	logs['time'] = end_time - start_time
+
+	return logs
 
 def main(args):
 
@@ -56,7 +66,6 @@ def main(args):
 	# =============================================
 	
 	run(host, port, db_name, 'globals', collection_in, collection_out, [min_loc, max_loc],4 ,4, 1, 20, 20, s)
-	
 	
 	return 0
 

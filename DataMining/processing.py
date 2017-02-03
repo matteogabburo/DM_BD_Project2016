@@ -1,6 +1,8 @@
 #!/usr/bin/env python3.5
 import sys
 import json
+import datetime
+import json
 from pprint import pprint
 
 # my imports
@@ -58,11 +60,23 @@ def main(args):
 	nlevels = conf['n_approximation_levels']
 
 	# runs
-	m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
-	
-	m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, bounded_locs, phase2_n_threads, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
+	logs = {}
+	logs['date'] = datetime.datetime.now()
+	logs['params'] = conf
 
-	m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
+	logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
+
+	logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, bounded_locs, phase2_n_threads, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
+
+	logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
+
+
+	# write logs
+	out_logs_file_name = str(logs['date'])+'.json'
+	print('Writing logs into a file called '+ out_logs_file_name +'...')
+
+	with open(out_logs_file_name, 'w') as outfile:
+		json.dump(logs, outfile)
 
 	return 0
 

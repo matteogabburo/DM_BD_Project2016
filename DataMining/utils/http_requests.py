@@ -155,7 +155,12 @@ def get_url_html_corpus(url, max_waiting_time, l_fails):
 			while guard == False:
 				cutted_url = get_url_upperlevel(cutted_url)
 				if cutted_url != None:
-					response = requests.get(cutted_url, timeout=t)
+					try:
+						response = None
+						response = requests.get(cutted_url, timeout=t)
+					except: 
+						print('\n \t -> Problem with this url : '+cutted_url)
+				
 					if check_url_status(response) == True:
 						corpus = response.text
 						#ret.append(corpus)
@@ -320,15 +325,19 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log=True):
 	logs['time'] = final_time
 
 	corpuses = []
+	
+	logs_junk = {}
 	if len(junkres) > 0:
 		corpuses = junkres[0]
 
-		logs['j_nwords'] = junkres[1]
-		logs['j_nremovedwords'] = junkres[2]
-		logs['j_avgFrequence'] = junkres[3]
-		logs['j_varFrequence'] = junkres[4]
+		logs_junk['j_nw'] = junkres[1]
+		logs_junk['j_nr'] = junkres[2]
+		logs_junk['j_avg'] = junkres[3]
+		logs_junk['j_var'] = junkres[4]
 	else:
 		logs['nloss'] = logs['nurls']
+
+	logs['txt_p'] = logs_junk
 
 	return [corpuses, l_fails, logs]
 

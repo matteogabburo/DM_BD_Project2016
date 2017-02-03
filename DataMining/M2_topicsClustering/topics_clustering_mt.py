@@ -464,8 +464,7 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 		' hours, '+str(minutes_total)+
 		' minutes and '+str(seconds_total) + ' seconds')
 
-	return 0
-
+	return logs_topic
 
 if __name__ == '__main__':
 	sys.exit(main(sys.argv))
