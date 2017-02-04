@@ -37,6 +37,10 @@ def main(args):
 	phase1_n_threads = int(conf['geo_indexing_nthread'])
 
 	# phase 2 conf
+	text_processing_func = int(conf['junk_function'])
+	low_treshold = int(conf['junk_low_threshold'])
+	high_treshold = int(conf['junk_high_threshold'])
+
 	collection_name_topics = collection_approximation_in = conf['collection_topics']
 	s = int(conf['s'])
 	if conf['bounded_locs'] != "":
@@ -61,15 +65,14 @@ def main(args):
 
 	# runs
 	logs = {}
-	logs['date'] = datetime.datetime.now()
+	logs['date'] = str(datetime.datetime.now())
 	logs['params'] = conf
 
-	logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
+	#logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
 
-	logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, bounded_locs, phase2_n_threads, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
+	logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func ,low_treshold, high_treshold, bounded_locs, phase2_n_threads, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
 
 	logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
-
 
 	# write logs
 	out_logs_file_name = str(logs['date'])+'.json'

@@ -126,11 +126,6 @@ def isIntoTheCell_withPercentual(loc, s, bl, tr):
 	area1 = haversine(bl, (bl[0],tr[1])) * haversine(bl, (tr[0],bl[1]))	
 	area2 = haversine((dWest[0],dSouth[1]), (dWest[0], dNorth[1])) * haversine((dWest[0],dSouth[1]), (dEst[0], dNorth[1]))	
 
-	print('=======')
-	print(area2)
-	print(area1)
-	print('')
-
 	if area2 > area1:
 		
 		return (True, float(area1) / float(area2))

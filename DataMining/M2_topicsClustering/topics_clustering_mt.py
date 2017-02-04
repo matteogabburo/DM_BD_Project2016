@@ -57,7 +57,7 @@ def getPlotsMap(host, port, db_name, collection):
 
 # Definition of a class used for thread for parallelizing
 class TopicClusteringThread(threading.Thread):
-	def __init__(self, host_name, port, db_name, collection_name, collection_topics_name, bl, tr, s, max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic):
+	def __init__(self, host_name, port, db_name, collection_name, collection_topics_name, bl, tr, s, selector_removeJunk, negative_removejunk, positive_removejunk, max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic):
 		threading.Thread.__init__(self)
 		self.host_name = host_name
 		self.port = port
@@ -71,6 +71,10 @@ class TopicClusteringThread(threading.Thread):
 		self.q_fails = q_fails
 		# size of each cell of the grid
 		self.s = s
+
+		self.selector_removeJunk = selector_removeJunk
+		self.negative_removejunk = negative_removejunk
+		self.positive_removejunk = positive_removejunk
 
 		self.lda_ntopics = lda_ntopics
 		self.lda_npasses = lda_npasses
@@ -144,7 +148,9 @@ class TopicClusteringThread(threading.Thread):
 				# ====================================================
 				
 				# Get corpuses from of all the url into a cell
-				http_ret = http.get_corpuses(l_url, self.max_waiting_time, l_fails, False)
+				http_ret = http.get_corpuses(l_url, self.max_waiting_time, l_fails, 
+						False, self.selector_removeJunk, self.negative_removejunk, self.positive_removejunk)
+
 				#corpuses = http_ret[0]		
 				corpuses += http_ret[0]		
 				
@@ -336,7 +342,7 @@ def main(args):
 	run(host, port, db_name, collection_name_urls, 'globals', collection_topics_name,s ,bounded_locs,n_thread, max_waiting_time , log, lda_ntopics, lda_npasses, lda_nwords4topic)
 
 
-def run(host, port, db_name, collection_name_urls, dbstat_collection_name, collection_topics_name,s ,bounded_locs,n_thread, max_waiting_time , log, lda_ntopics, lda_npasses, lda_nwords4topic):
+def run(host, port, db_name, collection_name_urls, dbstat_collection_name, collection_topics_name,s, selector_removeJunk, negative_removejunk, positive_removejunk , bounded_locs,n_thread, max_waiting_time , log, lda_ntopics, lda_npasses, lda_nwords4topic):
 		
 	start_time = time.time()
 	# Parameters for http requests
@@ -397,8 +403,7 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 			if len(list(dao.getUrlsByBox(bl,tr))) == 0:
 	
 				t = TopicClusteringThread(host, port, db_name, collection_name_urls,
-							 collection_topics_name, bl, tr, s, 
-							max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic)				
+							 collection_topics_name, bl, tr, s, selector_removeJunk, negative_removejunk, positive_removejunk, max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic)				
 				t.deamon = True
 				t.start()
 				l_thread.append(t)
@@ -406,7 +411,7 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 			dao.close()
 		else:
 			t = TopicClusteringThread(host, port, db_name, collection_name_urls,
-						 collection_topics_name, bl, tr, s, 
+						 collection_topics_name, bl, tr, s, selector_removeJunk, negative_removejunk, positive_removejunk, 
 						max_waiting_time, q_fails, lda_ntopics, lda_npasses, lda_nwords4topic)
 			t.deamon = True
 			t.start()
