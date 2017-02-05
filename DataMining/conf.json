@@ -10,13 +10,13 @@
 	"geo_indexing_nthread":5,
 
 	"junk_function":2,
-	"junk_low_threshold":1,
-	"junk_high_threshold":1,
+	"junk_low_threshold":2,
+	"junk_high_threshold":2,
 
 	"collection_topics":"topics_mediumset",
-	"s":200,
+	"s":10,
 	"bounded_locs": [[35.515482, 6.958351],[46.897953, 18.457763]],
-	"topicsClustering_nthread": 80,
+	"topicsClustering_nthread": 200,
 	"max_waiting_time_http": 1,
 	"log": "True",
 
@@ -25,7 +25,7 @@
 	"lda_nwordsfortopic":20,
 
 	"collection_approximation" : "topics_approximated_mediumset",
-	"merge_algorithm" : 1,
+	"merge_algorithm" : 2,
 	"n_approximation_levels": 4,
 	"n_approximation_partition": 4
 

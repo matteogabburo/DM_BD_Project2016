@@ -9,6 +9,8 @@ import utils.http_requests as http
 import utils.topic_processing as l
 sys.path.remove('..')
 
+#global confidence
+confidencesteps = [0.50,0.55,0.60,0.65,0.70,0.75,0.80,0.85,0.90,0.95,0.99]
 
 def estimation(original_corpuses, min_par, max_par, junkselector, step):
 
@@ -29,8 +31,8 @@ def estimation(original_corpuses, min_par, max_par, junkselector, step):
 	d_log['best_negatives'] = negatives	
 	d_log['best_positives'] = positives
 
-	bestnegative = avg_list(negatives)
-	bestpositive = avg_list(positives)
+	bestnegative = f_approximation(avg_list(negatives))
+	bestpositive = f_approximation(avg_list(positives))
 	
 	nwordsBeforeCut = 0
 	nwordsAfterCut = 0
@@ -44,7 +46,7 @@ def estimation(original_corpuses, min_par, max_par, junkselector, step):
 				nwordsAfterCut += wordCounter(original_corpuses[i])
 
 		elif junkselector == 2:
-			res = http.removeJunk_var(original_corpuses[i], bestnegative, bestpositive)
+			res = http.removeJunk_var(original_corpuses[i], confidencesteps[bestnegative], confidencesteps[bestpositive])
 			if len(res) > 0:
 				corpuses = res[0]
 				nwordsAfterCut += wordCounter(original_corpuses[i])
@@ -68,6 +70,13 @@ def estimation(original_corpuses, min_par, max_par, junkselector, step):
 	return d_log
 
 
+def f_approximation(number):
+	i_number = int(number)
+	if (number - i_number) > 0.5:
+		return i_number + 1
+	else:
+		return i_number
+
 def wordCounter(corpuses):
 	# count words
 	counter = 0
@@ -79,6 +88,10 @@ def wordCounter(corpuses):
 
 def evaluation(original_corpuses, init_par1, init_par2, selector, step):
 
+	if(selector == 2):
+		init_par1 = 0
+		init_par2 = len(confidencesteps)-1
+
 	negative1 = init_par1
 	negative2 = init_par2	
 	positive1 = init_par1
@@ -86,14 +99,23 @@ def evaluation(original_corpuses, init_par1, init_par2, selector, step):
 
 	bestnegative = bestpositive = 0
 
+	nWordsAfter = 0
+
+	for i in range(0,len(original_corpuses)):
+		nWordsAfter += wordCounter(original_corpuses[i])
+
 	guard = False
 	while guard == False:
-		
+
+		nWordsPost1 = nWordsPost2 = 0
+
 		if selector == 1:
 			res =  http.removeJunk(original_corpuses, negative1, 1)
 			if len(res) > 0:
 				corpuses = res[0]
-				avg1,var1 = get_lda_avg_and_variance(corpuses)
+				avg1,var1 = get_lda_avg_and_variance(corpuses)				
+				for i in range(0,len(corpuses)):
+					nWordsPost1 += wordCounter(corpuses[i])
 			else:
 				avg1 = var1 = 0	
 
@@ -101,57 +123,56 @@ def evaluation(original_corpuses, init_par1, init_par2, selector, step):
 			if len(res) > 0:
 				corpuses = res[0]
 				avg2,var2 = get_lda_avg_and_variance(corpuses)
+				for i in range(0,len(corpuses)):
+					nWordsPost2 += wordCounter(corpuses[i])
 			else:
 				avg2 = var2 = 0	
 
 		elif selector == 2:
-			res =  http.removeJunk_var(original_corpuses, negative1, 1)
+			res =  http.removeJunk_var(original_corpuses, confidencesteps[negative1], 0.99)
 			if len(res) > 0:
 				corpuses = res[0]
 				avg1,var1 = get_lda_avg_and_variance(corpuses)
+				for i in range(0,len(corpuses)):
+					nWordsPost1 += wordCounter(corpuses[i])
 			else:
 				avg1 = var1 = 0	
 
-			res = http.removeJunk_var(original_corpuses, negative2, 1)
+			res = http.removeJunk_var(original_corpuses, confidencesteps[negative2], 0.99)
 			if len(res) > 0:
 				corpuses = res[0]
 				avg2,var2 = get_lda_avg_and_variance(corpuses)
+				for i in range(0,len(corpuses)):
+					nWordsPost2 += wordCounter(corpuses[i])
 			else:
 				avg2 = var2 = 0	
 
 		# w1 calculus
 		avg1 = avg1 * avg1
 		var1 = var1 * var1
-		w1 = compute_w(avg1, var1)
+		w1 = (nWordsAfter - nWordsPost1) * compute_w(avg1, var1)
 		# w2 calculus
 		avg2 = avg2 * avg2
 		var2 = var2 * var2
-		w2 = compute_w(avg2, var2)
-	
-		if w1 == w2 == 0:
-			negative2 = negative2 - step
-			negative1 = negative1 + step
-		else:
-			if w1 > w2:
+		w2 = (nWordsAfter - nWordsPost2) * compute_w(avg2, var2)
+
+		
+
+		if negative1 >= 0 and negative2 >= 0:
+			if w1 == w2 == 0:
 				negative2 = negative2 - step
-				bestnegative = negative1
-			else:
 				negative1 = negative1 + step
-				bestnegative = negative2
-
-		#print [w1,w2]
-
-		#print('\n\t'+str(bestnegative), end='\n')
-
+			else:
+				if w1 > w2:
+					negative2 = negative2 - step
+					bestnegative = negative1
+				else:
+					negative1 = negative1 + step
+					bestnegative = negative2
+	
 		if negative1 >= negative2:
 			guard = True
 	
-
-	negative1 = init_par1
-	negative2 = init_par2	
-	positive1 = init_par1
-	positive2 = init_par2	
-
 	guard = False
 	while guard == False:
 		
@@ -160,27 +181,35 @@ def evaluation(original_corpuses, init_par1, init_par2, selector, step):
 			if len(res) > 0:
 				corpuses = res[0]
 				avg1,var1 = get_lda_avg_and_variance(corpuses)
+				for i in range(0,len(corpuses)):
+					nWordsPost1 += wordCounter(corpuses[i])
 			else:
 				avg1 = var1 = 0	
 			res = http.removeJunk(original_corpuses, 1, positive2)
 			if len(res) > 0:
 				corpuses = res[0]
 				avg2,var2 = get_lda_avg_and_variance(corpuses)
+				for i in range(0,len(corpuses)):
+					nWordsPost2 += wordCounter(corpuses[i])
 			else:
 				avg2 = var2 = 0	
 
 		elif selector == 2:
-			res = http.removeJunk_var(original_corpuses, 1, positive1)
+			res = http.removeJunk_var(original_corpuses, 0.99, confidencesteps[positive1])
 			if len(res) > 0:
 				corpuses = res[0]
 				avg1,var1 = get_lda_avg_and_variance(corpuses)
+				for i in range(0,len(corpuses)):
+					nWordsPost1 += wordCounter(corpuses[i])
 			else:
 				avg1 = var1 = 0	
 			
-			res = http.removeJunk_var(original_corpuses, 1, positive2)			
+			res = http.removeJunk_var(original_corpuses, 0.99, confidencesteps[positive2])			
 			if len(res) > 0:
 				corpuses = res[0]
 				avg2,var2 = get_lda_avg_and_variance(corpuses)
+				for i in range(0,len(corpuses)):
+					nWordsPost2 += wordCounter(corpuses[i])
 			else:
 				avg2 = var2 = 0	
 
@@ -188,23 +217,23 @@ def evaluation(original_corpuses, init_par1, init_par2, selector, step):
 		# w1 calculus
 		avg1 = avg1 * avg1
 		var1 = var1 * var1
-		w1 = compute_w(avg1, var1)
+		w1 = (nWordsAfter - nWordsPost1) * compute_w(avg1, var1)
 		# w2 calculus
 		avg2 = avg2 * avg2
 		var2 = var2 * var2
-		w2 = compute_w(avg2, var2)
+		w2 = (nWordsAfter - nWordsPost2) * compute_w(avg2, var2)
 		
-		
-		if w1 == w2 == 0:
-			positive2 = positive2 - step
-			positive1 = positive1 + step
-		else:		
-			if w1 > w2:
+		if positive1 <= len(confidencesteps)-1 and positive2 <= len(confidencesteps)-1:
+			if w1 == w2 == 0:
 				positive2 = positive2 - step
-				bestpositive= positive1
-			else:
 				positive1 = positive1 + step
-				bestpositive = positive2
+			else:		
+				if w1 > w2:
+					positive2 = positive2 - step
+					bestpositive = positive1
+				else:
+					positive1 = positive1 + step
+					bestpositive = positive2
 
 		#print('\n\t'+str(bestpositive), end='\n')
 	
@@ -273,7 +302,7 @@ def avg_list(numbers):
 def test(nurls_set, testtype):
 
 	urlsTest = ['https://www.karamasoft.com/UltimateSpell/Samples/LongText/LongText.aspx',
-	'http://catdir.loc.gov/catdir/enhancements/fy0711/2006051179-s.html',
+	'http://catdir.loc.gov/catdir/enhancements/fy0711/2006051179-s.html',	
 	'http://www.w3schools.com/html/html_examples.asp',
 	'http://www.suzukicycles.com/',
 	'https://github.com/att',
@@ -548,7 +577,7 @@ def test(nurls_set, testtype):
 
 	# params ==========================
 	min_par = 1
-	max_par = 100
+	max_par = 5
 	step = 1
 	# =================================
 

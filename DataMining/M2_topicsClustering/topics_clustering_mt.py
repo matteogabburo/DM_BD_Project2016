@@ -453,8 +453,6 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 	#l_logs = [r for r in l_logs_threads if r != None]
 	logs_topic['threads'] = l_logs_threads
 
-	print(logs_topic)
-
 	seconds_total = int(final_time)+1	
 	minutes_total = int(int(final_time) / 60)
 	hours_total = int(minutes_total / 60)

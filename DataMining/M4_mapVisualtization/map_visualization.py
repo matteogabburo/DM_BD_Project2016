@@ -164,7 +164,7 @@ def main(args):
 	N_TOPICS = 20
 
 	# merge descriptor (1 = merge, 2 = mergeClusters)
-	merge_selector = 1
+	merge_selector = 2
 
 	# Parameters for the db
 	host = args[1]
@@ -175,9 +175,9 @@ def main(args):
 
 	# db_parameters
 	db_name = 'db_geo_index'
-	collection_topics = 'topics_miniset' # topics with min s
-	collection_a_topics = 'topics_miniset_approximated' # approximated topics
-	collection_dbstat = 'globals_miniset'
+	collection_topics = 'topics_mediumset' # topics with min s
+	collection_a_topics = 'topics_mediumset_approximated' # approximated topics
+	collection_dbstat = 'globals_mediumset'
 
 	# get the maximum map coordinates
 	max_loc, min_loc = dao_f.getBoundaries(host, port, db_name, collection_dbstat)

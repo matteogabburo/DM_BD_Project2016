@@ -2,6 +2,8 @@
 import sys
 import os
 import time
+from scipy import stats
+
 
 import requests
 from bs4 import BeautifulSoup
@@ -70,8 +72,11 @@ def parse_row(row):
 # Ceck if the url is meaningfull and if it has contents. Return true if it hasm and false in the other cases
 def check_url_status(response):
 	try:
-		if response.status_code == 200 and 'text/html' in response.headers['content-type']:	
-			return True
+		if response.status_code == 200 and 'text/html' in response.headers['content-type']:
+			if len(response.text) > 20: # if the page is empty		
+				return True
+			else:
+				return False
 		else :
 			return False
 	except:
@@ -121,7 +126,10 @@ def html2text(html):
 		soup = BeautifulSoup(html, 'lxml')
 		parsed_text = soup.get_text()		
 
-		return parsed_text.lower()	
+		if(len(parsed_text) > 20):
+			return parsed_text.lower()	
+		else:
+			return None
 	except: 
 		return None
 
@@ -161,7 +169,8 @@ def get_url_html_corpus(url, max_waiting_time, l_fails):
 						response = None
 						response = requests.get(cutted_url, timeout=t)
 					except: 
-						print('\n \t -> Problem with this url : '+cutted_url)
+						#print('\n \t -> Problem with this url : '+cutted_url)
+						a = 1# TMP
 				
 					if check_url_status(response) == True:
 						corpus = response.text
@@ -317,12 +326,13 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log, selector_removeJunk,
 	pt.conditionalPrint('',log)
 
 	# remove junk
-	if selector_removeJunk == 1:
-		junkres = removeJunk(corpuses, negative_removejunk, positive_removejunk)	
-	elif selector_removeJunk == 2:
-		junkres = removeJunk_var(corpuses, negative_removejunk, positive_removejunk)
-	else:
-		junkres = corpuses
+	if corpuses != None:
+		if selector_removeJunk == 1:
+			junkres = removeJunk(corpuses, negative_removejunk, positive_removejunk)	
+		elif selector_removeJunk == 2:
+			junkres = removeJunk_var(corpuses, negative_removejunk, positive_removejunk)
+		else:
+			junkres = corpuses
 
 	end_time = time.time()
 	final_time = end_time - start_time	
@@ -455,20 +465,50 @@ def removeJunk_var(corpuses, ntm, ptm):
 	if len(words) > 0:	
 		varFrequence = varFrequence  - avgFrequence * avgFrequence	
 		varFrequence = varFrequence / (len(words) * len(words))	
-		
+
 		if varFrequence < 0.00001:
 			varFrequence = 0.0
 		else:
-			varFrequence = sqrt(varFrequence)	
+			varFrequence = sqrt(varFrequence)			
 
 	if len(words) > 0:
 
 		# thresholds ntm is negative treshold multiplier and ptm is positive threshold multiplier for the variance
-		negativeThreshold = avgFrequence - ntm * varFrequence
-		positiveThreshold = avgFrequence + ptm * varFrequence
+		'''negativeThreshold = avgFrequence - ntm * varFrequence
+		positiveThreshold = avgFrequence + ptm * varFrequence'''
+		
+		
+		negativeThreshold = positiveThreshold = 0
+		if len(words) < 30: #use z
+		
+			z = {}	#dict for z table
+			z['0.7'] = 1.04
+			z['0.75'] = 1.15
+			z['0.8'] = 1.28
+			z['0.85'] = 1.44
+			z['0.9'] = 1.645
+			z['0.92'] = 1.75
+			z['0.95'] = 1.96
+			z['0.96'] = 2.05
+			z['0.98'] = 2.33
+			z['0.99'] = 2.58
 
-		if negativeThreshold < 1:
-			negativeThreshold = 1
+			negativeThreshold = f_approximation(avgFrequence - z[str(ntm)] * (varFrequence / sqrt(len(words))))
+			positiveThreshold = f_approximation(avgFrequence + z[str(ptm)] * (varFrequence / sqrt(len(words))))
+
+		else : # use t-student
+			#print(str(ntm) +' , '+str(len(words)))
+			#print(str(avgFrequence)+' - '+str(stats.t.ppf(ntm, len(words)))+' * '+str((varFrequence / sqrt(len(words)))))
+			negativeThreshold = f_approximation(avgFrequence - stats.t.ppf(ntm, len(words)) * (varFrequence / sqrt(len(words))))
+			positiveThreshold = f_approximation(avgFrequence + stats.t.ppf(ptm, len(words)) * (varFrequence / sqrt(len(words))))
+
+		'''if negativeThreshold < 1:
+			negativeThreshold = 1'''
+
+		print('==============')
+		print(negativeThreshold)
+		print(positiveThreshold)		
+		print('==============')
 
 		ret = []
 		# remove words from the text
@@ -478,7 +518,7 @@ def removeJunk_var(corpuses, ntm, ptm):
 			ret_corpus = []
 			for word in corpus:
 				nwords += 1
-				if words[word] > negativeThreshold and words[word] < positiveThreshold:
+				if words[word] >= negativeThreshold and words[word] <= positiveThreshold:
 					ret_corpus.append(word)
 				else:
 					nremovedwords += 1
@@ -493,10 +533,48 @@ def removeJunk_var(corpuses, ntm, ptm):
 		return []
 
 
+def f_approximation(number):
+
+	i_number = int(number)
+	if (number - i_number) > 0.5:
+		return i_number + 1
+	else:
+		return i_number
 
 def main(args):
 
-	print (get_url_text_corpus('http://stackoverflow.com/questions/4233476/sort-a-list-by-multiple-attributes',1,[]))
+	page = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
+	page1 = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
+	page2 = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
+	page3 = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
+	page4 = get_url_text_corpus('https://it.wikipedia.org/wiki/C/1966_P2_Barbon',10,[])
+	page5 = get_url_text_corpus('https://it.wikipedia.org/wiki/Detective_in_pantofole',10,[])
+	page6 = get_url_text_corpus('https://it.wikipedia.org/wiki/Enosis_Neon_ThOI_Lakatamia',10,[])	
+
+	page[0] += page1[0] + page2[0] + page3[0] + page4[0] + page5[0] + page6[0]
+
+	#print(page)
+	rnpage = removeJunk(page,1,1)
+
+
+	''' possibles cofidences
+	'0.70'
+	'0.75'
+	'0.80'
+	'0.85'
+	'0.90'
+	'0.92'
+	'0.95'
+	'0.96'
+	'0.98'
+	'0.99'
+	'''
+	rvpage = removeJunk_var(page,0.70,0.70)
+
+	print(len(rnpage[0][0]))
+	#print(rvpage)
+	print(len(rvpage[0][0]))
+
 	return 0
 
 if __name__ == '__main__':
