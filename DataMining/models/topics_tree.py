@@ -81,7 +81,7 @@ def mergeTopicsClusters(topics_list, number_of_words=10, number_of_documents=Non
 		coherence = topic[1] 
 		word_set = topic[0]
 		#print(coherence)
-		new_coherence = float(new_coherence) + coherence * float(num_docs)
+		new_coherence = float(new_coherence) + coherence #* float(num_docs)
 		for weight, word in word_set:
 			if word not in words:
 				words[word] = .0
@@ -99,7 +99,7 @@ def mergeTopicsClusters(topics_list, number_of_words=10, number_of_documents=Non
 	
 	words = [(weight/sum_weight, str(word)) for (weight,word) in words]
 	
-	topic = (words,new_coherence/float(tot_num_docs))
+	topic = (words,new_coherence)#/float(tot_num_docs))
 	
 	return (tot_num_docs, topic)
 

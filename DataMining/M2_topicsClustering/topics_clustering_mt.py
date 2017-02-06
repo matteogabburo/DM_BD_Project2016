@@ -213,7 +213,7 @@ class TopicClusteringThread(threading.Thread):
 				# ===============================================================================
 
 				# modify the coherence of each topic
-				d_corpuses_words = {}
+				'''d_corpuses_words = {}
 				len_d_corpuses = 0
 				for corpus in corpuses:
 					for word in corpus:
@@ -221,30 +221,32 @@ class TopicClusteringThread(threading.Thread):
 						if word in d_corpuses_words:
 							d_corpuses_words[word] += 1
 						else:
-							d_corpuses_words[word] = 1
-				new_topics_list = []	
+							d_corpuses_words[word] = 1'''
+				#new_topics_list = []	
 				original_coherences = []
-				my_coherences = []
+				#my_coherences = []
 				for topic in l_topics:
-					coherence = 0
+				#	coherence = 0
 					original_coherences.append(topic[1]) # for logs
-					for word in topic[0]:
-						coherence += d_corpuses_words[word[1]]
-					new_topic_list = []
-					new_topic_list.append(topic[0])
-					new_topic_list.append(coherence / len_d_corpuses)
-					my_coherences.append(coherence / len_d_corpuses) # for logs
-					new_topics_list.append(new_topic_list)
+				#	for word in topic[0]:
+				#		coherence += d_corpuses_words[word[1]]
+						#print(coherence)
+				#	new_topic_list = []
+				#	new_topic_list.append(topic[0])
+				#	new_topic_list.append(coherence/ len_d_corpuses)
+				#	my_coherences.append(coherence / len_d_corpuses) # for logs
+				#	new_topics_list.append(new_topic_list)
 
-				l_topics = new_topics_list
+				#l_topics = new_topics_list
 
 				end_lda_time = time.time()
 	
 				# logs lda
+				logs_lda['lda_nwords'] = wordCounter(corpuses)
 				logs_lda['lda_time'] = end_lda_time - start_lda_time
 				logs_lda['lda_ntopics'] = self.lda_ntopics		
 				logs_lda['lda_npasses'] = self.lda_npasses
-				logs_lda['my_coherence'] = my_coherences
+				#logs_lda['my_coherence'] = my_coherences
 				logs_lda['original_coherence'] = original_coherences
 
 				new_topic_list = []
@@ -300,6 +302,15 @@ class TopicClusteringThread(threading.Thread):
 		# close thread
 		self.logs = logs_cell
 		self.finish = True
+
+
+def wordCounter(corpuses):
+	# count words
+	counter = 0
+	for corpus in corpuses:
+		counter += len(corpus)
+	
+	return counter
 
 def main(args):
 	if len(args) == 1 or args[1] == '--h':

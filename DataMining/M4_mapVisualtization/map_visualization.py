@@ -164,7 +164,7 @@ def main(args):
 	N_TOPICS = 20
 
 	# merge descriptor (1 = merge, 2 = mergeClusters)
-	merge_selector = 2
+	merge_selector = 1
 
 	# Parameters for the db
 	host = args[1]
