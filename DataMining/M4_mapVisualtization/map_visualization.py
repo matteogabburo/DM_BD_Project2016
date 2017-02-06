@@ -5,6 +5,7 @@ import time
 
 from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
+import json
 
 # My imports
 sys.path.append('..')
@@ -23,6 +24,12 @@ sys.path.remove('..')
 #   big enaugh for the cell dimension
 
 # PLOT=======================================================================================
+
+
+def getConf():
+	with open('../conf.json') as data_file:    
+		data = json.load(data_file)
+	return data
 
 def initMap(mainBl, mainTr):
 
@@ -155,29 +162,32 @@ def getBestTopics(topics):
 
 def main(args):
 
-	if len(args) == 1 or args[1] == '--h':
+	'''if len(args) == 1 or args[1] == '--h':
 		print('Parameters : [ hostname, port, s ]')
 		return 0
+	'''
+
+	conf = getConf()
 
 	# Globals
-	N_WORDS_TOPICS = 20 
-	N_TOPICS = 20
+	N_WORDS_TOPICS = conf['lda_nwordsfortopic']
+	N_TOPICS = conf['lda_ntopics']
 
 	# merge descriptor (1 = merge, 2 = mergeClusters)
-	merge_selector = 1
+	merge_selector = conf['merge_algorithm']
 
 	# Parameters for the db
-	host = args[1]
-	port = int(args[2])
+	host = conf['host']
+	port = conf['port']
 	
 	# Parameters for the matrix
-	s = int(args[3])
+	s = int(args[1])
 
 	# db_parameters
-	db_name = 'db_geo_index'
-	collection_topics = 'topics_mediumset' # topics with min s
-	collection_a_topics = 'topics_mediumset_approximated' # approximated topics
-	collection_dbstat = 'globals_mediumset'
+	db_name = conf['db_name']
+	collection_topics = conf['collection_topics'] # topics with min s
+	collection_a_topics = conf['collection_approximation'] # approximated topics
+	collection_dbstat = conf['dbstat_collection']
 
 	# get the maximum map coordinates
 	max_loc, min_loc = dao_f.getBoundaries(host, port, db_name, collection_dbstat)
