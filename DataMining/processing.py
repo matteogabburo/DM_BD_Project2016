@@ -6,10 +6,12 @@ import json
 from pprint import pprint
 
 # my imports
+sys.path.append('../libraries')
 import M1_geoIndexing.geo_indexing as m1 # module 1
 import M2_topicsClustering.topics_clustering_mt as m2 # module 2
 import M3_resultsApproximation.topics_merging as m3 # module 3
 import M4_mapVisualtization as m4 # module 4
+sys.path.remove('../libraries')
 
 # 1 get the conf file
 # call phase 1

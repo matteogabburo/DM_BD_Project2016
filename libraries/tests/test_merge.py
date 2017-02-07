@@ -233,9 +233,7 @@ def main(args):
 	'http://cool.cc/index/Top/Computers/Software/Typesetting/TeX'	
 	]
 
-
 	'''
-
 	'''
 
 
@@ -337,11 +335,15 @@ def main(args):
 	print(l_x)
 	print(coherences)
 
+	fig1 = plt.figure(figsize = (8,8))
+	plt.subplots_adjust(hspace=0.4)
+	p1 = plt.subplot(2,1,1)
 	plt.plot(l_x, l_0,'r--') #lda(a)
 	plt.plot(l_x, l_1,'b--') # lda(b)
 	plt.plot(l_x, l_2,'m') # lda(a,b)
 	plt.plot(l_x, l_3,'k') # merge
 	plt.plot(l_x, l_4,'g') # cluster merge
+	p1 = plt.subplot(2,1,2)
 
 	#plt.plot(my_avg_coherence_x, res,'g')
 	
