@@ -26,8 +26,8 @@ sys.path.remove('..')
 # PLOT=======================================================================================
 
 
-def getConf():
-	with open('../conf.json') as data_file:    
+def getConf(conffile):
+	with open(conffile) as data_file:    
 		data = json.load(data_file)
 	return data
 
@@ -162,12 +162,17 @@ def getBestTopics(topics):
 
 def main(args):
 
-	'''if len(args) == 1 or args[1] == '--h':
-		print('Parameters : [ hostname, port, s ]')
+	if len(args) == 1 or args[1] == '--h':
+		print('Parameters : [ conffile, s ]')
 		return 0
-	'''
+	
 
-	conf = getConf()
+	# Parameters for the matrix
+	conffile = args[1]	
+	s = int(args[2])
+
+
+	conf = getConf(conffile)
 
 	# Globals
 	N_WORDS_TOPICS = conf['lda_nwordsfortopic']
@@ -180,9 +185,7 @@ def main(args):
 	host = conf['host']
 	port = conf['port']
 	
-	# Parameters for the matrix
-	s = int(args[1])
-
+	
 	# db_parameters
 	db_name = conf['db_name']
 	collection_topics = conf['collection_topics'] # topics with min s

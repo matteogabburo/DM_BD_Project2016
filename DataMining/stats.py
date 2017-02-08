@@ -31,14 +31,15 @@ def makeM2stats(g_nurl,g_nloss,g_download_time, partials, original_coherences, m
 	print('')
 	print('MAKING STATS OF M2')
 
-	print(g_nurl)
-	print(g_nloss)
-	print(g_download_time) 
-	print(partials)
-	print(original_coherences) 
-	print(my_coherences)
-	print(lda_performance)
-
+	print('# url: \t'+str(g_nurl))
+	print('# loss: \t'+str(g_nloss))
+	print('# download time: \t'+str(g_download_time))
+	#print('# partials: \t'+str(partials))
+	#print('# original coherences: \t'+str(original_coherences))
+	#if len(my_coherences) > 0:
+	#	print(my_coherences)
+	#print('# lda performance: \t'+str(lda_performance))
+	#print('# lda time: \t'+str(lda_performance))
 	
 	#avg MY coherences 	
 	original_avg_coherence = [0 for i in range(0,len(original_coherences[0]))]
@@ -54,52 +55,54 @@ def makeM2stats(g_nurl,g_nloss,g_download_time, partials, original_coherences, m
 	
 	
 	#avg MY coherences 
-	my_avg_coherence = [0 for i in range(0,len(my_coherences[0]))]
-	for c in my_coherences:
-		#c.sort()
-		ic = 0
-		for e in c:
-			my_avg_coherence[ic] += e
-			ic += 1
+	if len(my_coherences) > 0:
+		my_avg_coherence = [0 for i in range(0,len(my_coherences[0]))]
+		for c in my_coherences:
+			#c.sort()
+			ic = 0
+			for e in c:
+				my_avg_coherence[ic] += e
+				ic += 1
 	
-	for i in range(0,len(my_avg_coherence)):
-		my_avg_coherence[i] = my_avg_coherence[i] / len(my_coherences)
+		for i in range(0,len(my_avg_coherence)):
+			my_avg_coherence[i] = my_avg_coherence[i] / len(my_coherences)
 
-	#my_avg_coherence = [math.log10(n) for n in my_avg_coherence]
+		#my_avg_coherence = [math.log10(n) for n in my_avg_coherence]
 
-	print(my_avg_coherence)
-	k = 1/1000
-	my_avg_coherence = mulList(my_avg_coherence, k)
+		print(my_avg_coherence)
+		k = 1/1000
+		my_avg_coherence = mulList(my_avg_coherence, k)
 
 	
-	original_avg_coherence_x = [i for i in range(0,len(original_avg_coherence))]
-	my_avg_coherence_x = [i for i in range(0,len(my_avg_coherence))]
+		original_avg_coherence_x = [i for i in range(0,len(original_avg_coherence))]
+		my_avg_coherence_x = [i for i in range(0,len(my_avg_coherence))]
 
-	#print(original_avg_coherence)
+		#print(original_avg_coherence)
 
-	print('============')
-	print(my_avg_coherence)
-	print(original_avg_coherence)
+		print('============')
+		print(my_avg_coherence)
+		print(original_avg_coherence)
 
-	res = mulList(div2List(original_avg_coherence, my_avg_coherence), 1000)
+		res = mulList(div2List(original_avg_coherence, my_avg_coherence), 1000)
 
-	print(res)
+		print(res)
 
-	print(original_coherences[0])
+		print(original_coherences[0])
 
-	for i in range(0,20):
-		#original_coherences[i] = mulList(original_coherences[i], k)
-		#original_coherences[i] = [math.log1p(n) for n in original_coherences[i]]
-		plt.plot(original_avg_coherence_x, original_coherences[i],'r--')#original_avg_coherence,'r--')
+		for i in range(0,20):
+			#original_coherences[i] = mulList(original_coherences[i], k)
+			#original_coherences[i] = [math.log1p(n) for n in original_coherences[i]]
+			plt.plot(original_avg_coherence_x, original_coherences[i],'r--')#original_avg_coherence,'r--')
 
-		#my_coherences[i] = mulList(my_coherences[i], k)
-		#my_coherences[i] = [math.log1p(n) for n in my_coherences[i]]
-		plt.plot(my_avg_coherence_x,my_coherences[i],'k') #my_avg_coherence,'k')
+			#my_coherences[i] = mulList(my_coherences[i], k)
+			#my_coherences[i] = [math.log1p(n) for n in my_coherences[i]]
+			plt.plot(my_avg_coherence_x,my_coherences[i],'k') #my_avg_coherence,'k')
 
-	#plt.plot(my_avg_coherence_x, res,'g')
+		#plt.plot(my_avg_coherence_x, res,'g')
 	
-	plt.show()
+		plt.show()
 
+	
 
 
 	print('')
@@ -150,7 +153,9 @@ def main(args):
 			lda = thread['lda']
 			if len(list(lda)) > 0:
 				original_coherences.append(lda['original_coherence'])
-				my_coherences.append(lda['my_coherence'])
+				my_coherences = []				
+				if 'my_coherence' in lda:
+					my_coherences.append(lda['my_coherence'])
 			
 				lda_time = lda['lda_time']
 				nwords = 0#TODO REMOVE COMMENT lda['lda_nwords']

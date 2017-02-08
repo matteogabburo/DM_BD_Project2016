@@ -22,6 +22,10 @@ sys.path.append('..')
 import utils.print_tools as pt
 sys.path.remove('..')
 
+MINSIZE_WORD = 2
+MAXSIZE_WORD = 15
+MINSIZE_CHARSDOC = 100
+MINSIZE_WORDSDOC = 50
 
 # Open a file passed for parameter and return the text. If the file does not exist it return 'None'
 def open_file(filename):
@@ -73,7 +77,7 @@ def parse_row(row):
 def check_url_status(response):
 	try:
 		if response.status_code == 200 and 'text/html' in response.headers['content-type']:
-			if len(response.text) > 20: # if the page is empty		
+			if len(response.text) > MINSIZE_CHARSDOC: # if the page has only 20 chars cut it		
 				return True
 			else:
 				return False
@@ -86,18 +90,21 @@ def check_url_status(response):
 # Example1 : https://www.google.it/search?q=hello+world -> https://www.google.it/search
 # Example2 : https://www.google.it/search -> https://www.google.it
 # It returns None if the remaining url is something like "https://" or something meaningless (len < 8)
-def get_url_upperlevel(url):
-	s_url = url.split('/')[2]
+def get_url_upperlevel(url, maximize_links):
+	if maximize_links == True:
+		s_url = url.split('/')[2]
 	
-	if '?' in url:
-		array = url.rpartition('?')
-	elif len(url) > 8 and '/' in url:
-		array = url.rpartition('/')
-		if len(array[0]) <= 8:
+		if '?' in url:
+			array = url.rpartition('?')
+		elif len(url) > 8 and '/' in url:
+			array = url.rpartition('/')
+			if len(array[0]) <= 8:
+				return None
+		else :
 			return None
-	else :
+		return array[0]
+	else:
 		return None
-	return array[0]
 
 	
 # Return only the text of an html page, all the text in lowercase, and without punctuation.
@@ -126,7 +133,7 @@ def html2text(html):
 		soup = BeautifulSoup(html, 'lxml')
 		parsed_text = soup.get_text()		
 
-		if(len(parsed_text) > 20):
+		if(len(parsed_text) > MINSIZE_CHARSDOC):
 			return parsed_text.lower()	
 		else:
 			return None
@@ -140,7 +147,7 @@ def html2text(html):
 # It returns an array with the html page of a given url and a code that says how many error inconsistence that were  
 # found during the process (usefull for compute weights) : [CORPUS, CODE].  If all the url is inconsistent it 
 # return -1 as number of errors and it means that the returning corpus is the parsed url.
-def get_url_html_corpus(url, max_waiting_time, l_fails):
+def get_url_html_corpus(url, max_waiting_time, maximize_links, l_fails):
 
 	# maximum waiting time
 	t = float(max_waiting_time)
@@ -163,7 +170,7 @@ def get_url_html_corpus(url, max_waiting_time, l_fails):
 			guard = False
 			cutted_url = url
 			while guard == False:
-				cutted_url = get_url_upperlevel(cutted_url)
+				cutted_url = get_url_upperlevel(cutted_url, maximize_links)
 				if cutted_url != None:
 					try:
 						response = None
@@ -193,9 +200,9 @@ def get_url_html_corpus(url, max_waiting_time, l_fails):
 
 #TODO change doc
 # This function parse html page that comes from 'get_url_html_corpus' and return it only with the text
-def get_url_text_corpus(url, max_waiting_time, l_fails):
+def get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails):
 
-	ret = get_url_html_corpus(url, max_waiting_time,  l_fails)
+	ret = get_url_html_corpus(url, max_waiting_time, maximize_links,  l_fails)
 	l_fails = ret[1]	
 	document = ret[0]
 
@@ -265,7 +272,7 @@ def get_url_text_corpus(url, max_waiting_time, l_fails):
 # Given a file name it download all the 'good' corpus (exclude that are not in text/html 
 # format and http status 404 403 ecc) and returns a list of corpus : 
 # [['word1','word2'],[...]]
-def get_corpuses_by_file(filename, max_waiting_time, l_fails):
+def get_corpuses_by_file(filename, max_waiting_time, maximize_links, l_fails):
 
 	text = open_file(filename)
 
@@ -282,7 +289,7 @@ def get_corpuses_by_file(filename, max_waiting_time, l_fails):
 				urls = parsed_row[1]			
 				for url in urls:
 					ret = None	
-					out = get_url_text_corpus(url, max_waiting_time, l_fails)
+					out = get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails)
 					ret = out[0]
 					l_fails = out[1]
 						
@@ -297,7 +304,7 @@ def get_corpuses_by_file(filename, max_waiting_time, l_fails):
 # format and http status 404 403 ecc) and returns a list of corpus : 
 # [['word1','word2'],[...]]
 # remove junk == 1 -> static remove junk == 2 -> dinamic
-def get_corpuses(urls_list, max_waiting_time, l_fails, log, selector_removeJunk, negative_removejunk, positive_removejunk):
+def get_corpuses(urls_list, max_waiting_time, l_fails, log, maximize_links, selector_removeJunk, negative_removejunk, positive_removejunk):
 
 	start_time = time.time()
 
@@ -309,7 +316,7 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log, selector_removeJunk,
 	corpuses = []
 	for url in urls_list:		
 		ret = None	
-		out = get_url_text_corpus(url, max_waiting_time, l_fails)
+		out = get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails)
 		# Print infos
 		counter += 1
 		pt.conditionalPrintCB(0,s_urls,counter,'\t'+str(counter)+'/'+str(s_urls), log)
@@ -421,11 +428,11 @@ def removeJunk(corpuses, nfc, pfc):
 			ret_corpus = []
 			for word in corpus:
 				nwords += 1
-				if words[word] > negativeThreshold and words[word] < positiveThreshold:
+				if words[word] > negativeThreshold and words[word] < positiveThreshold and len(word) < MAXSIZE_WORD and len(word) > MINSIZE_WORD:
 					ret_corpus.append(word)
 				else:
 					nremovedwords += 1
-			if len(ret_corpus) > 20: 
+			if len(ret_corpus) > MINSIZE_WORDSDOC: 
 				ret.append(ret_corpus)
 
 		if len(ret) > 0:
@@ -522,7 +529,7 @@ def removeJunk_var(corpuses, ntm, ptm):
 					ret_corpus.append(word)
 				else:
 					nremovedwords += 1
-			if len(ret_corpus) > 20: 
+			if len(ret_corpus) > MINSIZE_WORDSDOC: 
 				ret.append(ret_corpus)
 
 		if len(ret) > 0:
@@ -542,39 +549,7 @@ def f_approximation(number):
 		return i_number
 
 def main(args):
-
-	page = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
-	page1 = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
-	page2 = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
-	page3 = get_url_text_corpus('https://it.wikipedia.org/wiki/Pagina_principale',10,[])
-	page4 = get_url_text_corpus('https://it.wikipedia.org/wiki/C/1966_P2_Barbon',10,[])
-	page5 = get_url_text_corpus('https://it.wikipedia.org/wiki/Detective_in_pantofole',10,[])
-	page6 = get_url_text_corpus('https://it.wikipedia.org/wiki/Enosis_Neon_ThOI_Lakatamia',10,[])	
-
-	page[0] += page1[0] + page2[0] + page3[0] + page4[0] + page5[0] + page6[0]
-
-	#print(page)
-	rnpage = removeJunk(page,1,1)
-
-
-	''' possibles cofidences
-	'0.70'
-	'0.75'
-	'0.80'
-	'0.85'
-	'0.90'
-	'0.92'
-	'0.95'
-	'0.96'
-	'0.98'
-	'0.99'
-	'''
-	rvpage = removeJunk_var(page,0.70,0.70)
-
-	print(len(rnpage[0][0]))
-	#print(rvpage)
-	print(len(rvpage[0][0]))
-
+	
 	return 0
 
 if __name__ == '__main__':

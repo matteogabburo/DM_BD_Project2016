@@ -50,6 +50,7 @@ def main(args):
 	else:
 		bounded_locs = None
 	phase2_n_threads = int(conf['topicsClustering_nthread'])
+	maximize_links = conf['maximize_links']
 	max_waiting_time_http = float(conf['max_waiting_time_http'])
 	if conf['log'] == "True" :
 		log = True
@@ -70,11 +71,11 @@ def main(args):
 	logs['date'] = str(datetime.datetime.now())
 	logs['params'] = conf
 
-	logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
+	#logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
 
-	logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func, low_treshold, high_treshold, bounded_locs, phase2_n_threads, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
+	#logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func, low_treshold, high_treshold, bounded_locs, phase2_n_threads, maximize_links, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
 
-	#logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
+	logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
 
 	# write logs
 	out_logs_file_name = str(logs['date'])+'.json'

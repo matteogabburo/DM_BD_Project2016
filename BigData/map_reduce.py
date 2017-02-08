@@ -174,6 +174,7 @@ def f_download(url, waiting_time):
 
 				try:			
 					# HTTP REQUEST
+					print(u_tmp)
 					response = requests.get(u_tmp, timeout=waiting_time)			
 	
 					# see if response is positive
@@ -183,8 +184,8 @@ def f_download(url, waiting_time):
 							text = response.text
 							text = html2text(text)
 							text = stemm(text)
-					
-							if text != None:
+
+							if text != None or len(text) > 20:
 								ret.append(text)
 								guard = True	
 							else:
@@ -367,7 +368,7 @@ def f_cellIndex(url, bottomLeftLoc, topRightLoc, s):
 			guard = True
 
 	if guard == True:
-		print(str(matrix.current)+' , '+str(url[1]))
+		print('\t - > '+str(matrix.current)+' , '+str(url[1]))
 		return (matrix.current, url[1])
 	else:
 		return (None, url[1])
@@ -402,7 +403,7 @@ def main(args):
 	logs = {}
 	# links extraction
 
-	logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
+	#logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
 
 	# Spark context definition
 	conf = SparkConf()
