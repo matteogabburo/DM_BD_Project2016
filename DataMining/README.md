@@ -1,3 +1,10 @@
+## Data sets
+
+1. miniset : 10 files with 100 rows for each file
+2. mediumset : 10 files with 3000 rows for each file
+3. bigset : 10 files with 10000 rows for each file
+4. fullset : 10 files with 200000 rows for each file
+
 ## conf.json parameters:
 
 >The name of the current test	

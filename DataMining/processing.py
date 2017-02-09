@@ -87,6 +87,8 @@ def main(args):
 
 	logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
 
+	print(out_file)	
+
 	# write logs	
 	if out_file[len(out_file)-1] == '/':
 		out_logs_file_name = out_file+test_name+'_'+str(logs['date'])+'.json'

@@ -95,13 +95,11 @@ class TopicClusteringThread(threading.Thread):
 		# connect to geo dao
 		dao = GeoDao(self.host_name, self.port)
 		dao.connect(self.db_name, self.collection_name)
-
 		result = dao.getUrlsByBox(self.bl,self.tr)
-
 		dao.close()
 
 		#do something with result
-		l_res = list(result)
+		l_res = result# list(result)
 
 		#sets of things 
 		#set_of_corpuses = []
@@ -408,7 +406,7 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 			time.sleep(1) # delays for 1 seconds
 		'''
 		while len(l_thread) > n_thread - 1:
-			time.sleep(1)
+			time.sleep(0.1)
 			l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
 
 		if checkpoint == True:

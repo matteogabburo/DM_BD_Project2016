@@ -57,6 +57,7 @@ def addMoreRows(db, collection_name, documents):
 # res = dao.addOne('places',{"loc": [1, 1]})
 # res = dao.addMany('places',[{"loc": [1, 1]},{"loc": [1, 1]}])
 # dao.close()
+
 class Dao:
 
 	def __init__(self, host, port):
@@ -64,36 +65,105 @@ class Dao:
 		self.db	= None
 		self.host = host
 		self.port = port
+		self.NTHREAD = 300
 
 	def connect(self, db_name):
-		self.client = MongoClient(self.host, self.port)
-		self.db = self.client[db_name]
+		guard = False
+		while guard == False:
+			try:
+				self.client = MongoClient(self.host, self.port, maxPoolSize=self.NTHREAD)
+				self.db = self.client[db_name]
+				guard = True
+			except:
+				# retry
+				guard = False
+				
 	
 	def addOne(self, collection_name, document):
-		result = self.db[collection_name].insert_one(document)
+		guard = False
+		while guard == False:
+			try:
+				if collection_name not in self.db.collection_names():
+					self.db.create_collection(collection_name)
+				result = self.db[collection_name].insert_one(document)
+				guard = True
+			except:
+				# retry
+				guard = False
+				
 		return result
 
 	def addMany(self, collection_name, documents):
-		result = self.db[collection_name].insert_many(documents)
+		guard = False
+		while guard == False:
+			try:
+				if collection_name not in self.db.collection_names():
+					self.db.create_collection(collection_name)
+				result = self.db[collection_name].insert_many(documents)
+				guard = True
+			except:
+				# retry
+				guard = False					
 		return result
 
 	def query(self, collection_name, query):
-		if query != '':
-			return self.db[collection_name].find(query)
-		else:
-			return self.db[collection_name].find()
+
+		guard = False
+		while guard == False:
+			try:
+				if collection_name not in self.db.collection_names():
+					self.db.create_collection(collection_name)
+
+				if query != '':
+					return self.db[collection_name].find(query)
+				else:
+					return self.db[collection_name].find()
+			except:
+				guard = False
+			
 
 	def bufferizzedQuery(self, collection_name, query, limit):
-		if query != '':
-			return self.db[collection_name].find(query).limit(limit)
-		else:
-			return self.db[collection_name].find().limit(limit)
+	
+		guard = False
+		while guard == False:
+			try:
+				if collection_name not in self.db.collection_names():
+					self.db.create_collection(collection_name)
+
+				if query != '':
+					return self.db[collection_name].find(query).limit(limit)
+				else:
+					return self.db[collection_name].find().limit(limit)
+
+			except:
+				guard = False		
 
 	def aggregate(self, collection_name, query):
-		return self.db[collection_name].aggregate(query)
+
+		guard = False
+		while guard == False:
+			try:
+				if collection_name not in self.db.collection_names():
+					self.db.create_collection(collection_name)
+
+				return self.db[collection_name].aggregate(query)
+
+			except:
+				guard = False
+
+
+		
 	
 	def updateOne(self, collection_name, id_doc, document):
-		return self.db[collection_name].update_one(id_doc, document, upsert=False)
+
+		guard = False
+		while guard == False:
+			try:
+				if collection_name not in self.db.collection_names():
+					self.db.create_collection(collection_name)
+				return self.db[collection_name].update_one(id_doc, document, upsert=False)
+			except:
+				guard = False
 
 	def removeAll(self, collection_name):
 		self.db[collection_name].remove({})
@@ -123,13 +193,27 @@ class GeoDao(Dao):
 
 	def connect(self, db_name, collection):
 		Dao.connect(self, db_name)
-		self.collection = collection
-		self.db[collection].create_index([('loc', GEO2D)])
-
+		guard = False
+		while guard == False:
+			try:
+				if collection not in self.db.collection_names():
+					self.db.create_collection(collection)
+					self.db[collection].create_index([('loc', GEO2D)])
+				self.collection = collection	
+				guard = True		
+			except:
+				guard = False
+				
 
 	def getUrlsByBox(self, locBl, locTr):
-		query = {"loc": {"$within": {"$box": [locBl, locTr]}}}
-		return self.query(self.collection, query)
+		guard = False
+		while guard == False:
+			try:
+				query = {"loc": {"$within": {"$box": [locBl, locTr]}}}
+				return list(self.query(self.collection, query))
+
+			except:
+				guard = False
 
 	def __del__(self):
 		self.close()

@@ -236,7 +236,7 @@ def get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails):
 			fr_stop = get_stop_words('fr')
 
 			# Create p_stemmer of class PorterStemmer
-			p_stemmer = PorterStemmer()
+			#p_stemmer = PorterStemmer()
 			
 			# clean and tokenize document string
 			raw = document.lower()
@@ -257,14 +257,15 @@ def get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails):
 			for word in stopped_tokens5:
 				if not any(char.isdigit() for char in word):
 					if len(word) > 1:
-						ret.append(word)
-	
+						#check if the word has the alphabet character
+						if word.isalpha():					
+							ret.append(word)
+
 			return [ret,l_fails]
 		else:
 			return [None,l_fails]
 	else:
 		return [None,l_fails]
-
 
 
 # TODO change documentation
@@ -368,6 +369,7 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log, maximize_links, sele
 # function that remove junk from corpuses. It cut all the words with less frequency than nfc
 # the words with frequency > than pfc
 def removeJunk(corpuses, nfc, pfc):
+
 	words = {}
 	
 	highestFrequence = 0
@@ -428,6 +430,10 @@ def removeJunk(corpuses, nfc, pfc):
 			for word in corpus:
 				nwords += 1
 				if words[word] > negativeThreshold and words[word] < positiveThreshold and len(word) < MAXSIZE_WORD and len(word) > MINSIZE_WORD:
+
+					if(len(word) >= MAXSIZE_WORD):
+						print(word)
+
 					ret_corpus.append(word)
 				else:
 					nremovedwords += 1
