@@ -207,7 +207,7 @@ class TopicClusteringThread(threading.Thread):
 				start_lda_time = time.time()
 
 				# nsteps, ntopics
-				corpus,document_lda = lda.getTopicsFromDocs(corpuses, self.lda_ntopics, self.lda_npasses)
+				corpus,document_lda, len_dict = lda.getTopicsFromDocs(corpuses, self.lda_ntopics, self.lda_npasses)
 				# 20 topics DA 20 word
 				l_topics = lda.getTopicsRanking(document_lda,corpus, self.lda_ntopics, self.lda_nwords4topic)
 
@@ -245,6 +245,7 @@ class TopicClusteringThread(threading.Thread):
 	
 				# logs lda
 				logs_lda['lda_nwords'] = wordCounter(corpuses)
+				logs_lda['lda_dlen'] = len_dict
 				logs_lda['lda_time'] = end_lda_time - start_lda_time
 				logs_lda['lda_ntopics'] = self.lda_ntopics		
 				logs_lda['lda_npasses'] = self.lda_npasses
@@ -357,6 +358,8 @@ def main(args):
 
 def run(host, port, db_name, collection_name_urls, dbstat_collection_name, collection_topics_name,s, selector_removeJunk, negative_removejunk, positive_removejunk , bounded_locs,n_thread, maximize_links, max_waiting_time , log, lda_ntopics, lda_npasses, lda_nwords4topic):
 		
+	print('\nURLS DOWNLOAD AND LDA ::::::::::::::::::')
+
 	start_time = time.time()
 	# Parameters for http requests
 	

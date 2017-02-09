@@ -49,7 +49,7 @@ def getTopicsFromDocs(texts,n_topics,n_passes):
 
 	corpus = [dictionary.doc2bow(text) for text in texts]
 	ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=n_topics, id2word = dictionary, passes=n_passes)
-	return corpus, ldamodel
+	return corpus, ldamodel, len(dictionary)
 
 # TODO doumentation
 def getTopicsRanking(lda_model,corpus,number_topics=100,number_words=10):

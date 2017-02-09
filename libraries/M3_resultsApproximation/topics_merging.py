@@ -17,8 +17,15 @@ sys.path.remove('..')
 
 def run(host, port, db_name, dbstat_collection_name, collection_in, collection_out, bounded_locs, partitions, nlevels, merge_selector, ntopics, nwords, s):
 
-	start_time = time.time()
+	print('\nTOPICS MERGE :::::::::::::::::::::::::::')
+	print('Partitions : '+str(partitions))
+	print('Nlevels : ' +str(nlevels))
+	print('Merge selector : '+str(merge_selector))
+	print('Starting \'s\' : '+str(s))
+	print('')
 
+	start_time = time.time()
+	
 	if bounded_locs != None:
 		min_loc = bounded_locs[0]
 		max_loc = bounded_locs[1]
@@ -38,7 +45,23 @@ def run(host, port, db_name, dbstat_collection_name, collection_in, collection_o
 	end_time = time.time()
 
 	logs = {}
-	logs['time'] = end_time - start_time
+	final_time = end_time - start_time
+	logs['time'] = final_time
+	
+	# print time
+	seconds_total = int(final_time)+1	
+	minutes_total = int(int(final_time) / 60)
+	hours_total = int(minutes_total / 60)
+
+	if hours_total > 0 :
+		minutes_total = minutes_total % 60
+	if minutes_total > 0:
+		seconds_total = seconds_total % 60 
+
+	print('')
+	print('Execution time : '+ str(hours_total) +
+		' hours, '+str(minutes_total)+
+		' minutes and '+str(seconds_total) + ' seconds')
 
 	return logs
 

@@ -19,17 +19,27 @@ sys.path.remove('../libraries')
 # call phase 3
 
 
-def getConf():
-	with open('conf.json') as data_file:    
+def getConf(conffile):
+	with open(conffile) as data_file:    
 		data = json.load(data_file)
 	return data
 
 def main(args):
 
-	conf = getConf()
+	if len(args) < 3:
+		print('Error, insert parameters [conf_file_path]')
+		return 0
+
+	conf_file = args[1]
+	out_file = args[2]
+
+	conf = getConf(conf_file)
 	
 	db_host = conf['host']
 	db_port = int(conf['port'])
+
+	#exit data name
+	test_name = conf['test_name']
 
 	# phase 1 conf : db_host_name, db_port, directory, db_name, collection_name, collection_name_dbstat, n_threads
 	directory = conf['txt_directory']
@@ -71,14 +81,18 @@ def main(args):
 	logs['date'] = str(datetime.datetime.now())
 	logs['params'] = conf
 
-	#logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
+	logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
 
-	#logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func, low_treshold, high_treshold, bounded_locs, phase2_n_threads, maximize_links, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
+	logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func, low_treshold, high_treshold, bounded_locs, phase2_n_threads, maximize_links, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
 
 	logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
 
-	# write logs
-	out_logs_file_name = str(logs['date'])+'.json'
+	# write logs	
+	if out_file[len(out_file)-1] == '/':
+		out_logs_file_name = out_file+test_name+'_'+str(logs['date'])+'.json'
+	else:
+		out_logs_file_name = out_file+'/'+test_name+'_'+str(logs['date'])+'.json'
+
 	print('Writing logs into a file called '+ out_logs_file_name +'...')
 
 	with open(out_logs_file_name, 'w') as outfile:

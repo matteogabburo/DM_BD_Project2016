@@ -95,7 +95,7 @@ def persist(filename, host_name, port, db_name, collection_name, collection_name
 			counter = 0
 			size = len(rows)
 		
-			print('# Number of rows in \"'+filename+'\": ' + str(size)+'\n')
+			#print('# Number of rows in \"'+filename+'\": ' + str(size)+'\n')
 
 			# Get the maximum coordinates from the db
 			stat = list(dao.query(collection_name_dbstat, ''))
@@ -122,9 +122,9 @@ def persist(filename, host_name, port, db_name, collection_name, collection_name
 					
 					res = dao.addOne(collection_name, url.__dict__)
 				
-				counter = counter + 1					
+				'''counter = counter + 1					
 				if counter % (size // 15) == 0:
-					print(str(100 // (size / counter)) + ' % Done of \"'+ filename+'\"')
+					print(str(100 // (size / counter)) + ' % Done of \"'+ filename+'\"')'''
 
 			# add lat_max, lon_max, lat_min and lon_min to db if are better
 			stat = list(dao.query(collection_name_dbstat, ''))
@@ -165,12 +165,20 @@ class GeoIndexingThread(threading.Thread):
 
 def run(db_host_name, db_port, directory, db_name, collection_name, collection_name_dbstat, n_threads):
 		
+	print('GEO INDEXING :::::::::::::::::::::::::::')
+
 	start_time = time.time()
 
 	# get files names
 	file_list = getFilesList(directory)
 	file_list.sort()
 	
+	print('dataset files : ')
+	for f in file_list:
+		print(str(f))
+	print('')
+	print('I\'m working...')
+
 	if len(file_list) < n_threads:
 		n_threads = len(file_list)
 

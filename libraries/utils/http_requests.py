@@ -4,7 +4,6 @@ import os
 import time
 from scipy import stats
 
-
 import requests
 from bs4 import BeautifulSoup
 from math import sqrt
@@ -251,11 +250,11 @@ def get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails):
 			stopped_tokens5 = [i for i in stopped_tokens4 if not i in fr_stop]
 		
 			# stem tokens
-			stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens5]
+			#stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens5]
 	
 			# remove all the word that are meaning less
 			ret = []
-			for word in stemmed_tokens:
+			for word in stopped_tokens5:
 				if not any(char.isdigit() for char in word):
 					if len(word) > 1:
 						ret.append(word)
@@ -512,10 +511,10 @@ def removeJunk_var(corpuses, ntm, ptm):
 		'''if negativeThreshold < 1:
 			negativeThreshold = 1'''
 
-		print('==============')
+		'''print('==============')
 		print(negativeThreshold)
 		print(positiveThreshold)		
-		print('==============')
+		print('==============')'''
 
 		ret = []
 		# remove words from the text
