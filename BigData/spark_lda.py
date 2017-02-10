@@ -34,7 +34,7 @@ spark = SparkSession\
 #	(2,[1, Vectors.dense([0.0, 1.0])]),
 #	(1,[2, SparseVector(2, {0: 1.0})])
 #	]
-"""
+
 data = [
 	(1,["ciao","come","stai", "ciao", "come", "va"]),
 	(2,["goku","non","lo","sai"]),
@@ -43,7 +43,7 @@ data = [
 	(1,["c","e","m"])	
 	]
 rdd = sc.parallelize(data)
-"""
+
 #print(x[1])
 
 #print(x.map(lambda x: (x[0],[x[1]])).reduceByKey(lambda x,y: x+y).collect())
@@ -156,7 +156,7 @@ def getMapLDA(GridRDD, NumberOfTopics):
 	#print("\n\n@@@@@@@@@@@@@@@@@@@@@@@@@@\n\n")
 	return data
 
-"""
+
 data = getMapLDA(rdd,20)#.describeTopics()
 
 for ID,(lda,vocabulary) in data:
@@ -164,5 +164,4 @@ for ID,(lda,vocabulary) in data:
 	print(ID)
 	print(getTopicsFromLDA(lda,vocabulary))
 	print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n")
-"""
 

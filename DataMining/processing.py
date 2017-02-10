@@ -81,7 +81,7 @@ def main(args):
 	logs['date'] = str(datetime.datetime.now())
 	logs['params'] = conf
 
-	#logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
+	logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
 
 	logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func, low_treshold, high_treshold, bounded_locs, phase2_n_threads, maximize_links, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
 

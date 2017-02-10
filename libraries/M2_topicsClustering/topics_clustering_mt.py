@@ -407,7 +407,10 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 		'''
 		while len(l_thread) > n_thread - 1:
 			time.sleep(0.1)
-			l_thread = [t for t in l_thread if (t.isAlive() and t.finish == False)]
+			for t in l_thread:
+				if t.finish == True:
+					l_logs_threads.append(t.logs)
+			l_thread = [t for t in l_thread if t.isAlive() and t.finish == False]
 
 		if checkpoint == True:
 			# connect to geo dao
@@ -436,12 +439,12 @@ def run(host, port, db_name, collection_name_urls, dbstat_collection_name, colle
 
 		# print the state of the process
 		pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells)+ ' on '+str(matrix.numberOfCells) +
-					 ' | Threads : ' + str(len(l_thread)), log)		
+					 ' | Threads : ' + str(len(l_thread))+' '*20, log)		
 		
 
 	# print the state of the process
 	pt.conditionalPrintCB(0,matrix.nX * matrix.nY,n_cells, str(n_cells-1)+ ' on '+str(matrix.numberOfCells) +
-				 ' | Threads : ' + str(len(l_thread)), log)		
+				 ' | Threads : ' + str(len(l_thread))+' '*20, log)		
 	print('')
 
 

@@ -271,7 +271,7 @@ def get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails):
 def isAlphabet(word):
 
 	alphabet = ['a','b','c','d','e','f','g','h','j','k','i','l','m','n','o','p','q','r','s','t','u','v','x','y','w','z','à','è','é','ì','í','ò','ó','ù','ú']
-	guard = True:
+	guard = True
 	for t in word:
 		if t not in alphabet:
 			guard = False
