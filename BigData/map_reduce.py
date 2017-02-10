@@ -13,6 +13,7 @@ import M1_geoIndexing.geo_indexing as m1 # module 1
 sys.path.remove('../libraries')
 
 import requests
+import spark_lda as lda
 from bs4 import BeautifulSoup
 from math import sqrt
 
@@ -424,7 +425,8 @@ def main(args):
 	
 	# Map Reduce
 	a = urlsRDD.map(lambda x: f_download(x,max_waiting_time)).map(lambda x: f_cellIndex(x, min_loc, max_loc, s)).collect()
-	
+	a = lda(a)
+
 	print('\n\n\n\n\n\nFINITO\n\n\n\n\n\n\n')
 
 

@@ -8,6 +8,7 @@ import threading
 import time
 from queue import Queue
 import copy
+from hurry.filesize import size
 
 # My imports
 sys.path.append('..')
@@ -244,6 +245,7 @@ class TopicClusteringThread(threading.Thread):
 				# logs lda
 				logs_lda['lda_nwords'] = wordCounter(corpuses)
 				logs_lda['lda_dlen'] = len_dict
+				logs_lda['lda_sizec'] = str(size(sys.getsizeof(corpuses)))
 				logs_lda['lda_time'] = end_lda_time - start_lda_time
 				logs_lda['lda_ntopics'] = self.lda_ntopics		
 				logs_lda['lda_npasses'] = self.lda_npasses

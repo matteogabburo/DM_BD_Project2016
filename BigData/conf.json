@@ -2,7 +2,7 @@
 	"host": "localhost",
 	"port": 27017,
 	
-	"txt_directory": "/home/matteo/Desktop/DataMining/miniset",
+	"txt_directory": "/home/matteo/Desktop/DataMining/datasets/miniset",
 
 	"db_name":"db_geo_index",
 	"url_collection": "clicks_miniset",
