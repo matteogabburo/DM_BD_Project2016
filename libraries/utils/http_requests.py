@@ -347,11 +347,9 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log, maximize_links, sele
 	# remove junk
 	if corpuses != None:
 		if selector_removeJunk == 1:
-			junkres = removeJunk(corpuses, negative_removejunk, positive_removejunk)	
+			corpuses = removeJunk(corpuses, negative_removejunk, positive_removejunk)	
 		elif selector_removeJunk == 2:
-			junkres = removeJunk_var(corpuses, negative_removejunk, positive_removejunk)
-		else:
-			junkres = corpuses
+			corpuses = removeJunk_var(corpuses, negative_removejunk, positive_removejunk)
 
 	end_time = time.time()
 	final_time = end_time - start_time	
@@ -364,13 +362,12 @@ def get_corpuses(urls_list, max_waiting_time, l_fails, log, maximize_links, sele
 	
 	logs_junk = {}
 	if (selector_removeJunk == 1 or selector_removeJunk == 2):
-		if len(junkres) > 0:
-			corpuses = junkres[0]
-
-			logs_junk['j_nw'] = junkres[1]
-			logs_junk['j_nr'] = junkres[2]
-			logs_junk['j_avg'] = junkres[3]
-			logs_junk['j_var'] = junkres[4]
+		if len(corpuses) > 0:
+			logs_junk['j_nw'] = corpuses[1]
+			logs_junk['j_nr'] = corpuses[2]
+			logs_junk['j_avg'] = corpuses[3]
+			logs_junk['j_var'] = corpuses[4]
+			corpuses = corpuses[0]
 		else:
 			logs['nloss'] = logs['nurls']
 
@@ -442,10 +439,6 @@ def removeJunk(corpuses, nfc, pfc):
 			for word in corpus:
 				nwords += 1
 				if words[word] > negativeThreshold and words[word] < positiveThreshold and len(word) < MAXSIZE_WORD and len(word) > MINSIZE_WORD:
-
-					if(len(word) >= MAXSIZE_WORD):
-						print(word)
-
 					ret_corpus.append(word)
 				else:
 					nremovedwords += 1

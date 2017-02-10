@@ -61,8 +61,8 @@ Number of words for each topic
 Name of the collection that contains the approximated topics
 >`"collection_approximation" : "topics_approximated_mediumset_dm1",`
 Merge function selector
-1. Merge (best time performance)
-2. Merge_cluster using K-means
+1. Merge_cluster using K-means
+2. Merge (best time performance)
 >`"merge_algorithm" : 2,`
 Number of levels of the approximation tree
 >`"n_approximation_levels": 4,`

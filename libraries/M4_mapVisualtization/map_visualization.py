@@ -178,7 +178,7 @@ def main(args):
 	N_WORDS_TOPICS = conf['lda_nwordsfortopic']
 	N_TOPICS = conf['lda_ntopics']
 
-	# merge descriptor (1 = merge, 2 = mergeClusters)
+	# merge descriptor (1 = mergeCluster, 2 = merge)
 	merge_selector = conf['merge_algorithm']
 
 	# Parameters for the db
@@ -243,9 +243,9 @@ def main(args):
 		if len(topics) > 0:
 			
 			# merge selector 
-			if merge_selector == 1:			
+			if merge_selector == 2:			
 				cell_descriptor = tt.merge(topics, N_TOPICS, s)
-			elif merge_selector == 2:
+			elif merge_selector == 1:
 				cell_descriptor = tt.mergeClusters(topics,N_TOPICS,N_WORDS_TOPICS,s)
 			# take the highest topic into the cell descriptor
 			final_topics = []
