@@ -1,7 +1,7 @@
 {
-	"test_name": "test6",
+	"test_name": "test6_mini",
 
-	"host": "localhost",
+	"host": "127.0.0.1",
 	"port": 27017,
 	
 	"txt_directory": "/home/matteo/Desktop/DataMining/datasets/miniset",

@@ -1,5 +1,5 @@
 {
-	"test_name": "test2",
+	"test_name": "test2_mini",
 
 	"host": "127.0.0.1",
 	"port": 27017,

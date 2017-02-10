@@ -1,14 +1,14 @@
 {
-	"test_name": "test3_mini",
+	"test_name": "test7_medium",
 
 	"host": "127.0.0.1",
 	"port": 27017,
 	
-	"txt_directory": "/home/matteo/Desktop/DataMining/datasets/miniset",
+	"txt_directory": "/home/matteo/Desktop/DataMining/datasets/mediumset",
 
 	"db_name":"db_geo_index",
-	"url_collection": "clicks_mini_test3",
-	"dbstat_collection":"globals_mini_test3",
+	"url_collection": "clicks_medium_test7",
+	"dbstat_collection":"globals_medium_test7",
 	"geo_indexing_nthread":5,
 
 	"junk_function":1,
@@ -16,8 +16,8 @@
 	"junk_high_threshold":8,
 
 	"maximize_links":false,
-	"collection_topics":"topics_mini_test3",
-	"s":10,
+	"collection_topics":"topics_medium_test7",
+	"s":5,
 	"bounded_locs": [[35.515482, 6.958351],[46.897953, 18.457763]],
 	"topicsClustering_nthread": 400,
 	"max_waiting_time_http": 1,
@@ -27,8 +27,8 @@
 	"lda_npasses":20,
 	"lda_nwordsfortopic":20,
 
-	"collection_approximation" : "topics_approximated_mini_test3",
+	"collection_approximation" : "topics_approximated_medium_test7",
 	"merge_algorithm" : 2,
-	"n_approximation_levels": 4,
+	"n_approximation_levels": 8,
 	"n_approximation_partition": 4
 }

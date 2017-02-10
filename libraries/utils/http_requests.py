@@ -21,7 +21,7 @@ sys.path.append('..')
 import utils.print_tools as pt
 sys.path.remove('..')
 
-MINSIZE_WORD = 2
+MINSIZE_WORD = 4
 MAXSIZE_WORD = 15
 MINSIZE_CHARSDOC = 100
 MINSIZE_WORDSDOC = 50
@@ -258,7 +258,7 @@ def get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails):
 				if not any(char.isdigit() for char in word):
 					if len(word) > 1:
 						#check if the word has the alphabet character
-						if word.isalpha():					
+						if isAlphabet(word):				
 							ret.append(word)
 
 			return [ret,l_fails]
@@ -266,6 +266,18 @@ def get_url_text_corpus(url, max_waiting_time, maximize_links, l_fails):
 			return [None,l_fails]
 	else:
 		return [None,l_fails]
+
+
+def isAlphabet(word):
+
+	alphabet = ['a','b','c','d','e','f','g','h','j','k','i','l','m','n','o','p','q','r','s','t','u','v','x','y','w','z','à','è','é','ì','í','ò','ó','ù','ú']
+	guard = True:
+	for t in word:
+		if t not in alphabet:
+			guard = False
+	return guard
+	
+
 
 
 # TODO change documentation

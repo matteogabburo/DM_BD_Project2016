@@ -193,7 +193,7 @@ class TopicClusteringThread(threading.Thread):
 											
 					set_of_corpuses = []
 				'''
-				# =================================================		
+				# ==============================================================================		
 				# Make lda on the corpuses
 				'''print('[ LDA of '+str(len(corpuses))+' corpuses, '+
 					str(size(sys.getsizeof(corpuses))), end = '\r') #for loc : \t '+str(self.bl[0])+'\t'+str(self.bl[0]), end = '\r')				'''
