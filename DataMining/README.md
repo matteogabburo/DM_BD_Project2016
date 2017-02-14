@@ -5,6 +5,24 @@
 3. bigset : 10 files with 10000 rows for each file
 4. fullset : 10 files with 200000 rows for each file
 
+
+## Tests
+
+### Selected urls
+1. perplexity
+
+### Miniset
+1. [4] S : 5, 10, 20, 40 
+2. [4] RemoveJunk: (2,2),(2,4),(4,2),(4,4)
+3. [4] Merge : 2*merge, 2*mergecluster 
+
+### Mediumset
+1. [6] Approximation Tree levels 3, 4, 5, 6, 7, 8
+
+### Bigset
+
+
+
 ## conf.json parameters:
 
 The name of the current test	

@@ -106,6 +106,7 @@ def mergeTopicsClusters(topics_list, number_of_words=10, number_of_documents=Non
 #get a cluster of the topics getted from the docs clustering
 #clustroids[index] = (n_docs, n_topics, clustroid_topic0, clustroid_topic1, ...) or (n_docs,n_topics,topics)
 def mergeClusters(clustroids, max_topics, words_per_topic, s):
+
 	#data description
 	"""
 	clustroids[x] = (number_of_documents, topics)
@@ -115,96 +116,108 @@ def mergeClusters(clustroids, max_topics, words_per_topic, s):
 	
 	tmp = []
 	locs = []
+
 	for clustroid in clustroids:
 		tmp.append((clustroid['ncorpuses'],clustroid['topics']))
 		locs.append(clustroid['loc'])
 
 	clustroids = tmp
 	
+	isFull = False
+	for c in clustroids:
+		if len(c[1]) > 0:
+			isFull = True
+
 	dictionary = {}
 	topics_only = []
 	topics_list = []
 	clustroid_id = 0
 	total_documents = 0
+
+	if isFull == True:	
+
+		for (number_of_documents, topics) in clustroids:
+			total_documents = total_documents + number_of_documents
+			topic_id = 0
+			#print("LUNGO?")
+			#print(len(topics))
+			for topic in topics:
+				topics_list.append((clustroid_id,number_of_documents,topic_id,topic))
+				#print(topic)
+				topic_id = topic_id + 1
+				words = []
+				#print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+				#print(topic)
+				for (coefficient, word) in topic[0]:
+					dictionary[word] = 1
+					words.append(word)
+				topics_only.append(" ".join(words))
+			clustroid_id = clustroid_id + 1
+		max_topics = min(max_topics,len(topics_only))
+		"""
+		topics_list = (clustroid_id, topic_id, topic)
+		"""
 	
-	for (number_of_documents, topics) in clustroids:
-		total_documents = total_documents + number_of_documents
-		topic_id = 0
-		#print("LUNGO?")
-		#print(len(topics))
-		for topic in topics:
-			topics_list.append((clustroid_id,number_of_documents,topic_id,topic))
-			#print(topic)
-			topic_id = topic_id + 1
-			words = []
-			#print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-			#print(topic)
-			for (coefficient, word) in topic[0]:
-				dictionary[word] = 1
-				words.append(word)
-			topics_only.append(" ".join(words))
-		clustroid_id = clustroid_id + 1
-	max_topics = min(max_topics,len(topics_only))
-	"""
-	topics_list = (clustroid_id, topic_id, topic)
-	"""
+		"""
+		#preprocessing data:
+		*dictionary extraction
+		*topics convertion
+		"""
+		cv = CountVectorizer()#(vocabulary=dictionary)
+		X = cv.fit_transform(topics_only)
+		dictionary = cv.get_feature_names()
 	
-	"""
-	#preprocessing data:
-	*dictionary extraction
-	*topics convertion
-	"""
-	cv = CountVectorizer()#(vocabulary=dictionary)
-	X = cv.fit_transform(topics_only)
-	dictionary = cv.get_feature_names()
+		#print(dictionary)
 	
-	#print(dictionary)
+		X = X.toarray()
+		dictionary = np.array(dictionary)
 	
-	X = X.toarray()
-	dictionary = np.array(dictionary)
+		n, _ = X.shape
+		dist = np.zeros((n,n))
+		for i in range(n):
+			for j in range(n):
+				x,y = X[i,:], X[j,:]
+				dist[i,j] = np.sqrt(np.sum((x-y)**2))
+		dist = 1 - cosine_similarity(X)
 	
-	n, _ = X.shape
-	dist = np.zeros((n,n))
-	for i in range(n):
-		for j in range(n):
-			x,y = X[i,:], X[j,:]
-			dist[i,j] = np.sqrt(np.sum((x-y)**2))
-	dist = 1 - cosine_similarity(X)
+		#clustering process
+		#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		#K-MEANS
+		km = KMeans(n_clusters=max_topics)
+		km.fit(dist)
+		clusters = km.labels_.tolist()
+		#print(clusters)
+		#print(km)
 	
-	#clustering process
-	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	#K-MEANS
-	km = KMeans(n_clusters=max_topics)
-	km.fit(dist)
-	clusters = km.labels_.tolist()
-	#print(clusters)
-	#print(km)
+		cluster_map = {}
+		for i in range(len(clusters)):
+			key = int(clusters[i]) + 1
+			if key not in cluster_map:
+				cluster_map[key] = []
+			cluster_map[key].append(topics_list[i])
 	
-	cluster_map = {}
-	for i in range(len(clusters)):
-		key = int(clusters[i]) + 1
-		if key not in cluster_map:
-			cluster_map[key] = []
-		cluster_map[key].append(topics_list[i])
+		result = []
+		for label, topics in cluster_map.items():
+			res = mergeTopicsClusters(topics,words_per_topic,total_documents)
+			result.append(res[1])
+		#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	
-	result = []
-	for label, topics in cluster_map.items():
-		res = mergeTopicsClusters(topics,words_per_topic,total_documents)
-		result.append(res[1])
-	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	
-	#formatting result
-	"""
-	create a list "result" composed by:
-	result = (number_of_documents, topics)
-	topics[x] = (coherence_coefficient, topic)
-	"""
+		#formatting result
+		"""
+		create a list "result" composed by:
+		result = (number_of_documents, topics)
+		topics[x] = (coherence_coefficient, topic)
+		"""
+	else:
+		result = []
 
 	d_mergedTopic = {}
 	d_mergedTopic['s'] = s
 	d_mergedTopic['topics'] = result
 	d_mergedTopic['ncorpuses'] = total_documents
 	d_mergedTopic['loc'] = [mergeavg([row[0] for row in locs]), mergeavg([row[1] for row in locs])]	
+
+	#print(d_mergedTopic)
 
 	return (d_mergedTopic)
 
@@ -213,6 +226,8 @@ def mergeClusters(clustroids, max_topics, words_per_topic, s):
 
 # TODO documentation
 def merge(l_topics, topicForCell, s):
+
+	#print(l_topics)
 
 	# define the number of topic that any cell has after the merge
 	#topicForCell = 20
@@ -234,8 +249,9 @@ def merge(l_topics, topicForCell, s):
 		# turn to positive all the coherences
 		#l_topic = [[w[0],abs(w[1])] for w in l_topic]
 
-		if not mergedTopic:
+		if not mergedTopic and len(l_topic) > 0:
 			mergedTopic['topics'] = l_topic
+			#print(mergedTopic['topics'])
 			mergedTopic['ncorpuses'] = n_urls
 			# add the weight of the word to the dictionary
 			for t in l_topic:
@@ -244,7 +260,7 @@ def merge(l_topics, topicForCell, s):
 						d_wordsweight[row[1]].append(row[0] * n_urls)
 					else:
 						d_wordsweight[row[1]] = [row[0] * n_urls]						
-		else:
+		elif len(l_topic) > 0:
 			# found the most similiar topics between the two topics list
 			merged_topic = mergedTopic['topics']				
 
@@ -305,7 +321,6 @@ def merge(l_topics, topicForCell, s):
 				l_topicupdated_container = []
 				l_topicupdated += tmp_words[:(topicForCell*2 - len(l_equalwords))]
 
-
 				# compute the weight of merge for the coerence, composing by the number of words that are 
 				# inserted in the 'finaltopic', that comes from the two topics in percentual
 				# ex final list is made using 12 words from the first topic and 8 from the 
@@ -341,23 +356,30 @@ def merge(l_topics, topicForCell, s):
 
 			#add the number of url
 			mergedTopic['ncorpuses'] += n_urls
+	
+	if not mergedTopic :
 
+		mergedTopic['topics'] = []
+		mergedTopic['ncorpuses'] = n_urls
 	
 	# take only the first 'topicForCell' number of topics and normalize the weights
 	tmptopics = mergedTopic['topics']
 
-	finaltopics = []
 	n_tot_urls = mergedTopic['ncorpuses']
 
-	for t in tmptopics:
-		t[0] = sorted(t[0], key=itemgetter(0), reverse = True)
-		t[0] = [(w[0]/n_tot_urls,w[1]) for w in t[0]]
-		t[0] = t[0][:(topicForCell)]
+	if tmptopics != []:
+		for t in tmptopics:
+			#print(t[0])
+			t[0] = sorted(t[0], key=itemgetter(0), reverse = True)
+			t[0] = [(w[0]/n_tot_urls,w[1]) for w in t[0]]
+			t[0] = t[0][:(topicForCell)]
 
 	# compute the centroid
 	mergedTopic['loc'] = [mergeavg([row[0] for row in locs]),mergeavg([row[1] for row in locs])]
 	mergedTopic['s'] = s
 	mergedTopic['topics'] = tmptopics
+
+	#print(mergedTopic)
 
 	return mergedTopic
 

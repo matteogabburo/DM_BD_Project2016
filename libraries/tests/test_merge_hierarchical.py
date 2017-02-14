@@ -1,10 +1,13 @@
 #!/usr/bin/env python3.5
 import sys
 from random import shuffle
+import random
 import math
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pylab as P
+
 import gensim
 from gensim import corpora, models
 
@@ -59,27 +62,32 @@ def gensim_perplexity(cp,ntopics,npasses):
 
 def lda(cp, ntopics, npasses):
 
-	cp = [x for x in cp if x != []]
+	if len(cp) > 0:
+
+		cp = [x for x in cp if x != []]
 	
-	dictionary = corpora.Dictionary(cp)
-  	# run model
-	parsed_cp = [dictionary.doc2bow(text) for text in cp]
-	model = gensim.models.ldamodel.LdaModel(corpus=parsed_cp, id2word=dictionary, num_topics=ntopics, passes=npasses)
-    
-	return model, parsed_cp
+		dictionary = corpora.Dictionary(cp)
+	  	# run model
+		parsed_cp = [dictionary.doc2bow(text) for text in cp]
+		model = gensim.models.ldamodel.LdaModel(corpus=parsed_cp, id2word=dictionary, num_topics=ntopics, passes=npasses)
+	    
+		return model, parsed_cp
+	return None, None
 
 '''
 	definition : perplexity(D) = exp(-(sum(log(p(words))) / sum(number of words of each docs) ))
 
 '''
 def perplexity_topic(topic, n, d_f):
-	
-	nominator = 0.0
 
+	nominator = 0.0
 	words = topic[0]
 	for word in words:
 		if word[1] in d_f:
-			nominator += float(d_f[word[1]]) / n
+			if nominator == 0.0:
+				nominator = float(d_f[word[1]]) / n
+			else:
+				nominator *= float(d_f[word[1]]) / n
 
 	if nominator > 0.0:
 		nominator = math.log(nominator, 2)
@@ -89,32 +97,32 @@ def perplexity_topic(topic, n, d_f):
 	
 
 def perplexity_topics(topics, corpuses):
-
-	# count words
-	nwords = 0
-	for corpus in corpuses:
-		nwords += len(corpus)
-	
-	#l_dict = []
 	perplexity = 0.0
-	for corpus in corpuses:
-		d_f = {}
-		n = len(corpus)
-		for word in corpus:
-			if word in d_f:
-				d_f[word] += 1
-			else:
-				d_f[word] = 1
-		#l_dict.append(d_f)
-		for topic in topics:
-			perplexity += perplexity_topic(topic, n, d_f)
+	
+	if len(topics) > 0 and len(corpuses) > 0:
+		# count words
+		nwords = 0
+		for corpus in corpuses:
+			nwords += len(corpus)
+	
+		#l_dict = []
+		for corpus in corpuses:
+			d_f = {}
+			n = len(corpus)
+			for word in corpus:
+				if word in d_f:
+					d_f[word] += 1
+				else:
+					d_f[word] = 1
+			#l_dict.append(d_f)
+			if n > 0:
+				for topic in topics:
+					perplexity += perplexity_topic(topic, n, d_f)
 
-	perplexity = -(perplexity / nwords)
+		perplexity = -(perplexity / nwords)
 
-	print(perplexity)
-
-	perplexity = math.pow(math.e, perplexity)
-	#perplexity = math.sqrt(perplexity)
+		#perplexity = math.pow(2, perplexity)
+		#perplexity = math.sqrt(perplexity)
 
 	return perplexity
 
@@ -224,7 +232,12 @@ def main(args):
 	'http://cool.cc/index/Top/Regional/Asia/India/Business_and_Economy',
 	'http://www.artsci.ccsu.edu/',
 	'http://cool.cc/index/Top/Reference/Education/Colleges_and_Universities/North_America/United_States/Connecticut/',
-	'http://www.kent.edu/',
+	'http://www.kent.edu/'
+	]
+
+	'''
+	
+	
 	'http://cool.cc/index/Top/Reference/Education/Colleges_and_Universities/North_America/United_States/Ohio',
 	'http://www.specialolympics.org/',
 	'http://cool.cc/index/Top/Sports/Disabled',
@@ -342,10 +355,6 @@ def main(args):
 	'http://cool.cc/index/Top/Games/Online/MUDs/Development/Codebases',
 	'http://www.tug.org/utilities/plain/cseq.html',
 	'http://cool.cc/index/Top/Computers/Software/Typesetting/TeX'
-	]
-
-	'''
-	
 	
 	'''
 
@@ -362,222 +371,331 @@ def main(args):
 
 	#=================================================================================
 
+	lda_ntopics = 20
+	lda_npasses = 20
+	lda_nwords4topic = 20
 
-	perplexities_s1 = []
-	perplexities_s2 = []
-	perplexities_s3 = []
-	perplexities_s4 = []
-	
-	perplexities_s5 = []
-	perplexities_s6 = []
-	perplexities_s7 = []
-	perplexities_s8 = []
 
-	perplexities_s12 = []
-	perplexities_s1234 = []
-	perplexities_s12345678 = []
+	# GRID
+	'''
+		1  2  3  4  5  6  7  8
+		9  10 11 12 13 14 15 16
+		17 18 19 20 21 22 23 24
+		......................
+		......................		
+		.................... 64
 
-	perplexities_merge12 =[]
-	perplexities_merge1234 =[]	
-	perplexities_merge12345678 =[]
 
-	perplexities_merge_cluster12 = []
-	perplexities_merge_cluster1234 = []
-	perplexities_merge_cluster12345678 = []
-
+		l1 : 1-2-3-4|5-6-7-8|9-10-11-12|13-14-15-16
+		l2 : 1-2-3-4-5-6-7-8-9-10-11-12-13-14-15-16
+		l3 : ....
+	'''
+	perplexities_simpleLda_1 = []
+	perplexities_simpleLda_2 = []
+	perplexities_simpleLda_3 = []
+	perplexities_merge_1 = []
+	perplexities_merge_2 = []
+	perplexities_merge_3 = []
+	perplexities_mergeCluster_1 = []
+	perplexities_mergeCluster_2 = []
+	perplexities_mergeCluster_3 = []
 
 	for i in range(0,int(args[1])):
 
-		shuffle(corpuses)
+		cells = [] # 64
+	
+		cells0_level = [] # 64
+		cells1_level = [] # 16
+		cells2_level = [] # 4
+		cells3_level = [] # 1
 
-		k = int(len(corpuses) / 8)#int(args[1]))
-
-		l_ksets = []
-		i = 0
-		tmp = []
-		for corpus in corpuses:
-			if i < k:
-				tmp.append(corpus)
-			else :
-				i = 0
-				l_ksets.append(tmp)
-				tmp = []
-			i += 1
-
-		print(len(l_ksets))
+		cells1_level_merge = [] # 16
+		cells2_level_merge = [] # 4
+		cells3_level_merge = [] # 1
+	
+		cells1_level_mergeCluster = [] # 16
+		cells2_level_mergeCluster = [] # 4
+		cells3_level_mergeCluster = [] # 1
 
 
+		cells0_lda_perplexity = []
+		cells1_level_lda_perplexity = []
+		cells2_level_lda_perplexity = []
+		cells3_level_lda_perplexity = []
 
-		for c in l_ksets:		
+		#cells0_merge_perplexity = []
+		cells1_level_merge_perplexity = []
+		cells2_level_merge_perplexity = []
+		cells3_level_merge_perplexity = []
 
-			set1 = []
-			set2 = []
-			set3 = []
-			set4 = []
-			set5 = []
-			set6 = []
-			set7 = []
-			set8 = []
-
-			a = 0
-			for i in range(int(len(c)/8)):
-				set1.append(c[a])
-				set2.append(c[a+1])
-				set3.append(c[a+2])
-				set4.append(c[a+3])
-				set5.append(c[a+4])
-				set6.append(c[a+5])
-				set7.append(c[a+6])
-				set8.append(c[a+7])
-				a += 8
-
-			'''print(len(set1))
-			print(len(set2))
-			print(len(set3))
-			print(len(set4))
-			print(len(set5))
-			print(len(set6))
-			print(len(set7))
-			print(len(set8))'''
-
-			lda_ntopics = 20
-			lda_npasses = 20
-			lda_nwords4topic = 20
+		#cells0_mergeCluster_perplexity = []
+		cells1_level_mergeCluster_perplexity = []
+		cells2_level_mergeCluster_perplexity = []
+		cells3_level_mergeCluster_perplexity = []
 
 
-			# PERPLEXITY
-
-			# set 1
-			d_set1, p_set1 = makeSet(set1,lda_ntopics,lda_npasses,lda_nwords4topic)
-			# set 2
-			d_set2, p_set2 = makeSet(set2,lda_ntopics,lda_npasses,lda_nwords4topic)
-			# set 3
-			d_set3, p_set3 = makeSet(set3,lda_ntopics,lda_npasses,lda_nwords4topic)
-			# set 4
-			d_set4, p_set4 = makeSet(set4,lda_ntopics,lda_npasses,lda_nwords4topic)
-			# set 5
-			d_set5, p_set5 = makeSet(set5,lda_ntopics,lda_npasses,lda_nwords4topic)
-			# set 6
-			d_set6, p_set6 = makeSet(set6,lda_ntopics,lda_npasses,lda_nwords4topic)
-			# set 7
-			d_set7, p_set7 = makeSet(set7,lda_ntopics,lda_npasses,lda_nwords4topic)
-			# set 8
-			d_set8, p_set8 = makeSet(set8,lda_ntopics,lda_npasses,lda_nwords4topic)
+		# populate cells
+		shuffle(corpuses)	
+		cells = [[] for c in range(0,64)]
+		for c in corpuses:
+			where = random.randint(0,63)
+			cells[where].append(c)
 
 
-			# set 1 + 2
-			set12 = set1+set2
-			model,c = lda(set12,lda_ntopics,lda_npasses)
-			topics_set12 = tp_lda.getTopicsRanking(model, c, lda_ntopics, lda_nwords4topic)
-			p_set12 = perplexity_topics(topics_set12, set12)
+		# lda of each cell
+		for c in cells:
+			d_s, p_s = makeSet(c,lda_ntopics,lda_npasses,lda_nwords4topic)
+			cells0_level.append(d_s)
+			cells0_lda_perplexity.append(p_s)
 
-			# set 1 + 2 + 3 + 4
-			set1234 = set1+set2+set3+set4
-			model,c = lda(set1234, lda_ntopics, lda_npasses)
-			topics_set1234 = tp_lda.getTopicsRanking(model, c, lda_ntopics, lda_nwords4topic)
-			p_set1234 = perplexity_topics(topics_set1234, set1234)
+		# SIMPLE LDA ==============================================================================================================
 
-			# set 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8
-			set12345678 = set1+set2+set3+set4+set5+set6+set7+set8
-			model,c = lda(set12345678, lda_ntopics, lda_npasses)
-			topics_set12345678 = tp_lda.getTopicsRanking(model, c, lda_ntopics, lda_nwords4topic)
-			p_set12345678 = perplexity_topics(topics_set12345678, set12345678)
+		# lda of the first merge
+		k = 0
+		m = 0	
+		for i in range(0,16):
+			four = cells[k]+cells[k+1]+cells[k+8]+cells[k+9]
+			d_s, p_s = makeSet(four, lda_ntopics, lda_npasses, lda_nwords4topic)
+			cells1_level.append(d_s)
+			cells1_level_lda_perplexity.append(p_s)
+			if m < 4:
+				k += 2
+				m += 1		
+			else:
+				k += 8 + 2
+				m = 0
 
-
-			# merge 12
-			topics_merge12 = t.merge([dict(d_set1),dict(d_set2)],lda_ntopics,10)['topics']
-			p_merge12 = perplexity_topics(topics_merge12, set12)
-
-			# merge 1234
-			topics_merge1234 = t.merge([dict(d_set1),dict(d_set2),dict(d_set3),dict(d_set4)],lda_ntopics,10)['topics']
-			p_merge1234 = perplexity_topics(topics_merge1234, set1234)
-
-			# merge 12345678
-			topics_merge12345678 = t.merge([dict(d_set1),dict(d_set2),dict(d_set3),dict(d_set4),dict(d_set5),dict(d_set6),dict(d_set7),dict(d_set8)],lda_ntopics,10)['topics']
-			p_merge12345678 = perplexity_topics(topics_merge12345678, set12345678)
+		# lda of the second merge
+		k = 0
+		m = 0	
+		for i in range(0,4):
 		
+			sixteen = cells[k]+cells[k+1]+cells[k+2]+cells[k+3]+\
+				cells[k+8]+cells[k+8+1]+cells[k+8+2]+cells[k+8+3]+\
+				cells[k+8*2]+cells[k+8*2+1]+cells[k+8*2+2]+cells[k+8*2+3]+\
+				cells[k+8*3]+cells[k+8*3+1]+cells[k+8*3+2]+cells[k+8*3+3]#+\
+				#cells[k+8*4]+cells[k+8*4+1]+cells[k+8*4+2]+cells[k+8*4+3]
+			d_s, p_s = makeSet(sixteen, lda_ntopics, lda_npasses, lda_nwords4topic)
+			cells2_level.append(d_s)
+			cells2_level_lda_perplexity.append(p_s)
+			if m < 2:
+				k += 4
+				m += 1		
+			else:
+				k += 24 + 4
+				m = 0
 
-			# merge cluster 12
-			topics_merge_clusters12 = t.mergeClusters([dict(d_set1),dict(d_set2)], lda_ntopics, lda_nwords4topic, 10)['topics']
-			p_merge_clusters12 = perplexity_topics(topics_merge_clusters12, set12)
+		# lda of the third merge
+		a = []
+		for c in cells:
+			a+=c	
 
-			# merge cluster 1234
-			topics_merge_clusters1234 = t.mergeClusters([dict(d_set1),dict(d_set2),dict(d_set3),dict(d_set4)], lda_ntopics, lda_nwords4topic, 10)['topics']
-			p_merge_clusters1234 = perplexity_topics(topics_merge_clusters1234, set1234)
+		d_s, p_s = makeSet(a, lda_ntopics, lda_npasses, lda_nwords4topic)
+		cells3_level.append(d_s)
+		cells3_level_lda_perplexity.append(p_s)
 
-			# merge cluster 12345678
-			topics_merge_clusters12345678 = t.mergeClusters([dict(d_set1),dict(d_set2),dict(d_set3),dict(d_set4),dict(d_set5),dict(d_set6),dict(d_set7),dict(d_set8)], lda_ntopics, lda_nwords4topic, 10)['topics']
-			p_merge_clusters12345678 = perplexity_topics(topics_merge_clusters12345678, set12345678)
+		# MERGE ====================================================================================================================
 
+		# merge	first level
+		k = 0
+		m = 0
+		cells_group = []
+		for i in range(0,16):
+			'''
+			print(cells0_level[k])	
+			print(cells0_level[k+1])
+			print(cells0_level[k+8])			
+			print(cells0_level[k+9])
+			'''
+			descriptor = t.merge([cells0_level[k], cells0_level[k+1], cells0_level[k+8], cells0_level[k+9]],lda_ntopics,10)
+			cells_group.append(cells[k]+cells[k+1]+cells[k+8]+cells[k+9])
 
-			print('')
-			print(p_set1)
-			print(p_set2)
-			print(p_set12)
-			print(p_set1234)
-			print(p_set12345678)
-			print(p_merge12)		
-			print(p_merge1234)		
-			print(p_merge12345678)
-			print(p_merge_clusters12)
-			print(p_merge_clusters1234)
-			print(p_merge_clusters12345678)		
-			print('')
-
-			#perplexities_s1.append(p_set1)
-			#perplexities_s2.append(p_set2)
-			perplexities_s12.append(p_set12)
-			perplexities_s1234.append(p_set1234)
-			perplexities_s12345678.append(p_set12345678)
-				
-			perplexities_merge12.append(p_merge12)
-			perplexities_merge1234.append(p_merge1234)
-			perplexities_merge12345678.append(p_merge12345678)
-
-			perplexities_merge_cluster12.append(p_merge_clusters12)
-			perplexities_merge_cluster1234.append(p_merge_clusters1234)
-			perplexities_merge_cluster12345678.append(p_merge_clusters12345678)
+			perplexity = perplexity_topics(descriptor['topics'], cells[k]+cells[k+1]+cells[k+8]+cells[k+9])
+			cells1_level_merge.append(descriptor)
+			cells1_level_merge_perplexity.append(perplexity)
+			if m < 4:
+				k += 2
+				m += 1		
+			else:
+				k += 8 + 2
+				m = 0
 
 
-	l_x = [i for i in range(0,len(perplexities_s12))]	
+		# merge	second level	
+		k = 0
+		m = 0	
+		for i in range(0,4):
+			descriptor = t.merge([cells1_level_merge[k], cells1_level_merge[k+1], cells1_level_merge[k+4], cells1_level_merge[k+5]],lda_ntopics,10)
+			perplexity = perplexity_topics(descriptor['topics'], cells_group[k]+cells_group[k+1]+cells_group[k+4]+cells_group[k+5])
+			cells2_level_merge.append(descriptor)
+			cells2_level_merge_perplexity.append(perplexity)
+			if m < 2:
+				k += 2
+				m += 1		
+			else:
+				k += 4 + 2
+				m = 0
+
+		# merge third level
+		a = []
+		for c in cells:
+			a+=c	
+
+		descriptor = t.merge([cells2_level_merge[0], cells2_level_merge[1], cells2_level_merge[2], cells2_level_merge[3]], lda_ntopics, 10)
+		perplexity = perplexity_topics(descriptor['topics'], a)
+
+		cells3_level_merge.append(descriptor) # 1
+		cells3_level_merge_perplexity.append(perplexity)
+
+		# MERGECLUSTER ==============================================================================================================
+
+		# merge	first level
+		k = 0
+		m = 0
+		cells_group = []
+		for i in range(0,16):
+
+			descriptor = t.mergeClusters([cells0_level[k], cells0_level[k+1], cells0_level[k+8], cells0_level[k+9]], lda_ntopics, lda_nwords4topic, 10)
+			cells_group.append(cells[k]+cells[k+1]+cells[k+8]+cells[k+9])
+			perplexity = perplexity_topics(descriptor['topics'], cells[k]+cells[k+1]+cells[k+8]+cells[k+9])
+			cells1_level_mergeCluster.append(descriptor)
+			cells1_level_mergeCluster_perplexity.append(perplexity)
+			if m < 4:
+				k += 2
+				m += 1		
+			else:
+				k += 8 + 2
+				m = 0
+
+
+		# merge	second level	
+		k = 0
+		m = 0	
+		for i in range(0,4):
+			descriptor = t.mergeClusters([cells1_level_mergeCluster[k], cells1_level_mergeCluster[k+1], cells1_level_mergeCluster[k+4], cells1_level_mergeCluster[k+5]], lda_ntopics, lda_nwords4topic, 10)
+			perplexity = perplexity_topics(descriptor['topics'], cells_group[k]+cells_group[k+1]+cells_group[k+4]+cells_group[k+5])
+			cells2_level_mergeCluster.append(descriptor)
+			cells2_level_mergeCluster_perplexity.append(perplexity)
+			if m < 2:
+				k += 2
+				m += 1		
+			else:
+				k += 4 + 2
+				m = 0
+
+		# merge third level
+		a = []
+		for c in cells:
+			a+=c	
+
+		descriptor = t.mergeClusters([cells2_level_mergeCluster[0], cells2_level_mergeCluster[1], cells2_level_mergeCluster[2], cells2_level_mergeCluster[3]], lda_ntopics, lda_nwords4topic, 10)
+		perplexity = perplexity_topics(descriptor['topics'], a)
+
+		cells3_level_mergeCluster.append(descriptor) # 1
+		cells3_level_mergeCluster_perplexity.append(perplexity)
 	
-	fig1 = plt.figure(figsize = (8,8))
-	plt.subplots_adjust(hspace=0.4)
+		# Collecting data ==============================================================
+		
+		perplexities_simpleLda_1.append(avgList(cells1_level_lda_perplexity))
+		perplexities_simpleLda_2.append(avgList(cells2_level_lda_perplexity))
+		perplexities_simpleLda_3.append(avgList(cells3_level_lda_perplexity))
 
-	#plt.plot(l_x, perplexities_s1,'r--')
-	#plt.plot(l_x, perplexities_s2,'b--')
+		perplexities_merge_1.append(avgList(cells1_level_merge_perplexity))
+		perplexities_merge_2.append(avgList(cells2_level_merge_perplexity))
+		perplexities_merge_3.append(avgList(cells3_level_merge_perplexity))
 
-	p1 = plt.subplot(3,1,1)
-	plt.plot(l_x, perplexities_s12,'m--') 
-	plt.plot(l_x, perplexities_merge12,'k')
-	plt.plot(l_x, perplexities_merge_cluster12,'g')
+		perplexities_mergeCluster_1.append(avgList(cells1_level_mergeCluster_perplexity))
+		perplexities_mergeCluster_2.append(avgList(cells2_level_mergeCluster_perplexity))
+		perplexities_mergeCluster_3.append(avgList(cells3_level_mergeCluster_perplexity))	
+
+		
+		print(perplexities_simpleLda_1)
+		print(perplexities_merge_1)				
+		print(perplexities_mergeCluster_1)
+		print('')
+		print(perplexities_simpleLda_2)
+		print(perplexities_merge_2)				
+		print(perplexities_mergeCluster_2)
+		print('')
+		print(perplexities_simpleLda_3)
+		print(perplexities_merge_3)				
+		print(perplexities_mergeCluster_3)
+		print('')
+		print('')
+
+
+	# PLOT ======================================================================================================================
 	
-	p1 = plt.subplot(3,1,2)
-	plt.plot(l_x, perplexities_s1234,'m--') 
-	plt.plot(l_x, perplexities_merge1234,'k')
-	plt.plot(l_x, perplexities_merge_cluster1234,'g')	
-
-	p1 = plt.subplot(3,1,3)
-	plt.plot(l_x, perplexities_s12345678,'m--') 
-	plt.plot(l_x, perplexities_merge12345678,'k')	
-	plt.plot(l_x, perplexities_merge_cluster12345678,'g')
-
-
-	#plt.plot(my_avg_coherence_x, res,'g')
 	
-	plt.show()
+	P.figure()
+
+	# the histogram of the data with histtype='step'
+	#n, bins, patches = P.hist(perplexities_simpleLda_1, bins, normed=1, histtype='bar', rwidth=0.8)	
+	
+
+	
+
+	simpleLda1 = avgList(perplexities_simpleLda_1)
+	merge1 = avgList(perplexities_merge_1)
+	mergeCluster1 = avgList(perplexities_mergeCluster_1)
+
+	simpleLda2 = avgList(perplexities_simpleLda_2)
+	merge2 = avgList(perplexities_merge_2)
+	mergeCluster2 = avgList(perplexities_mergeCluster_2)
+
+	simpleLda3 = avgList(perplexities_simpleLda_3)
+	merge3 = avgList(perplexities_merge_3)
+	mergeCluster3 = avgList(perplexities_mergeCluster_3)
+
+	alphab = ['LDA1', 'Merge1', 'MergeCluster1', '' ,'LDA2','Merge2', 'MergeCluster2','' ,'LDA3','Merge3','MergeCluster3' ]  
+	frecuences = [simpleLda1, merge1, mergeCluster1, 0,simpleLda2, merge2, mergeCluster2,0, simpleLda3, merge3, mergeCluster3]  
+	  
+	pos = np.arange(len(alphab))  
+	width = 1.0     # gives histogram aspect to the bar diagram  
+	  
+	ax = plt.axes()  
+	ax.set_xticks(pos + (width / 2))  
+	ax.set_xticklabels(alphab)  
+	  
+	plt.bar(pos, frecuences, width, color='r')  
+	plt.show()  
+	
 
 	return 0
 
 
+def avgList(l):
+	res = 0.0
+
+	l = [x for x in l if x != None and x != 0.0]
+
+	for e in l:
+		res += float(e)
+	
+	if len(l) > 0:
+		return float(res) / len(l) 
+	else:
+		return 0
+
+
 def makeSet(s,lda_ntopics,lda_npasses,lda_nwords4topic):
 	
+	topics_s = []
+	topics_new = []
 	model,c = lda(s,lda_ntopics,lda_npasses)
-	topics_s = tp_lda.getTopicsRanking(model, c, lda_ntopics, lda_nwords4topic)
-	p_s = perplexity_topics(topics_s, s)
+	if model != None or c != None:	
+		topics_s = tp_lda.getTopicsRanking(model, c, lda_ntopics, lda_nwords4topic)
+		
+		for topic in topics_s:
+			topics_new.append([topic[0],topic[1]])
+		p_s = perplexity_topics(topics_new, s)
+	else:
+		p_s = None
+		topics_s = []
+
 	d_s = {}
 	d_s['loc'] = [0,0]
-	d_s['topics'] = topics_s
+	d_s['topics'] = topics_new
 	d_s['s'] = 10
 	d_s['ncorpuses'] = len(s)
 	

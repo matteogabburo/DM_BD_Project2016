@@ -39,8 +39,16 @@ def makeM2stats(g_nurl,g_nloss,g_download_time, partials, original_coherences, m
 	#if len(my_coherences) > 0:
 	#	print(my_coherences)
 	#print('# lda performance: \t'+str(lda_performance))
-	#print('# lda time: \t'+str(lda_performance))
 	
+	lda_time = 0
+	for t in lda_performance:
+		lda_time += t[0]
+
+	print('# lda time: \t'+str(lda_time))
+	print('# lda avg time: \t'+str(lda_time / len(lda_performance)))
+	print('')	
+
+
 	#avg MY coherences 	
 	original_avg_coherence = [0 for i in range(0,len(original_coherences[0]))]
 	for c in original_coherences:
@@ -113,8 +121,6 @@ def main(args):
 	logs = getJson(filename)
 
 	conf = logs['params']	
-	
-
 
 	'''if 'm1' in logs:
 		logM1 = logs['m1']
@@ -166,7 +172,7 @@ def main(args):
 
 	if 'm3' in logs:
 		logM3 = logs['m3']		
-		print(logM3['time'])
+		print('Approximation time : ' + str(logM3['time']))
 
 	return 0
 

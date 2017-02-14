@@ -40,13 +40,7 @@ data = [
 	(2,["goku","non","lo","sai"]),
 	(1,["ciao","c","e","f","e","m","e","t","e","t"]),
 	(2,["n","r"]),
-	(1,["c","e","m"]),
-	(3,["$","*","£","!","?","@","#",":",";","$","~","[","]","{","}","{","}","#"]),
-	(4,["aa","aaaaaaa","aaaaa","aaaaaa","aaaa","aaaa","aaaaaaaaaaaaaaaa","aaaa","aaaaaaaaa"]),
-	(3,["$","'",":",";","~","~","~","~","~"]),
-	(4,["aaaa","aaaaaaaa","aaa","aa","aa","aaaaaaaa","aaaaaaaaa","a","aaaaaaaaaaaaaaaa","$","aaaaa","aaaaa","aaaaa","aaaaa","aaaaaaaa","aa","aa","aaaaaaaaaaaaaa"]),
-	(5,["x","x","x","x","x","x","x","x","x"]),
-	(3,["$",".","¬","|","+","`","!","^","^","$","[","]","%","%","%","(",")","="])
+	(1,["c","e","m"])	
 	]
 rdd = sc.parallelize(data)
 
@@ -98,9 +92,9 @@ def mapSetTopicsWithDictionary(SetTopics,Dictionary):
 		topics.append(mapTopicWithDictionary(topic, Dictionary))
 	return topics
 
-#extract topics from an LDA model, with the assigned Dictionary and a maximum number of words-per-topic
-def getTopicsFromLDA(LDA, Dictionary, NumberOfTerms):
-	result = LDA.describeTopics(NumberOfTerms)
+#extract topics from an LDA model, with the assigned Dictionary
+def getTopicsFromLDA(LDA, Dictionary):
+	result = LDA.describeTopics()
 	result = mapSetTopicsWithDictionary(result, Dictionary)
 	return result
 
@@ -122,25 +116,13 @@ def documentToSparseVector(document, vocabulary):
 	return (_id,SparseVector(len(vocabulary),docMap))
 
 #return a LDA model + its Dictionary, given a set of Documents(= [[word0, word1, ...] , [word0, word1, ...] , ... ] )
-#if OnlineOptimizer (boolean) is set to True it uses OnlineLDAOptimizer, o.w. it uses EMLDAOptimizer
-def getCellLDA(Documents, NumberOfTopics, OnlineOptimizer):
+def getCellLDA(Documents, NumberOfTopics):
 	#print("\n\n\n/////////////////////////////////////////////////////////////////////////////////////")
-	#print("FUCK OFF")
-	#print("docs:")
-	#print(Documents.collect())
-	corpus = Documents#.flatMap(lambda x: x[1])#sc.parallelize(Documents)
-	#print("corpus:")
-	#print(corpus.collect())
-	term_counts = corpus.flatMap(lambda x: x).map(lambda x: (x,1)).reduceByKey(lambda x,y: x+y)
-	#term_counts.cache()
-	#print("term_counts:")
-	#print(term_counts)
+	#print(Documents.collect())""""""
+	corpus = sc.parallelize(Documents)
+	term_counts = corpus.flatMap(lambda x: x).map(lambda x: (x,1)).reduceByKey(add)
 	#print(term_counts.collect())
-	#print(term_counts.collect())
-	#print("vocabulary:")
 	vocabulary = term_counts.map(lambda x: x[0]).zipWithIndex().collectAsMap()
-	#print(vocabulary)
-	#print("______________________________________________________________________________________\n\n")
 	#print("_____________________________________________________________________________________")
 	#print(vocabulary)
 	#print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
@@ -150,12 +132,11 @@ def getCellLDA(Documents, NumberOfTopics, OnlineOptimizer):
 	#print(documents.collect())
 	#print("*************************************************************************************")
 	
-	Optimizer = "online" if OnlineOptimizer else "em"
-	lda = LDA.train(documents, k=NumberOfTopics, maxIterations=20, optimizer=Optimizer)
+	lda = LDA.train(documents, k=NumberOfTopics, seed=1)
 	#print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 	#print(result)
 	#print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
-	return lda, vocabulary#[lda.describeTopics(), vocabulary]
+	return lda, vocabulary
 
 #given a set with cell tuples(= (CellID,Document)), return the list of (CellID, (lda, dictionary) )
 def getMapLDA(GridRDD, NumberOfTopics):
@@ -164,38 +145,12 @@ def getMapLDA(GridRDD, NumberOfTopics):
 	#prepare data for LDA
 	data = GridRDD \
 		.groupByKey() \
-		.map(lambda x : (x[0], list(x[1])))# \
-	#	.collect()
-	#print(data.collect())
-	#print("$$$$$$$$$")
-	keys = data.map(lambda x: x[0]).collect()
-	#print("keys")
-	#print(keys)
-	#print("data")
-	#print(data.collect())
-	#data = [(cellID, data.filter(lambda x: x[0] == cellID).flatMap(lambda x: x[1])) for cellID in keys]
-	
-	new = []
-	for cellID in keys:
-		pair = (cellID, data.filter(lambda x: x[0] == cellID).flatMap(lambda x: x[1]).cache())
-		new.append(pair)
-		#print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
-		#print(cellID)
-		#print(pair[1].collect())
-		#print("££")
-	
-	data = new
-	print("\n\n\n\n\n")
-	
+		.map(lambda x : (x[0], list(x[1]))) \
+		.collect()
 	
 	l_lda = []
 	for element in data:
-		#print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-		#print(element[0])
-		#print(element[1])
-		#print(element[1].collect())
-		#print("\n\n\n")
-		l_lda.append([element[0], getCellLDA(element[1], NumberOfTopics, False)])
+		l_lda.append([element[0], getCellLDA(element[1], NumberOfTopics)])
 	
 	data = l_lda
 	#print("end")
@@ -206,14 +161,9 @@ def getMapLDA(GridRDD, NumberOfTopics):
 
 data = getMapLDA(rdd,20)#.describeTopics()
 
-for ID,(lda,vocabulary) in data:#element in data:
+for ID,(lda,vocabulary) in data:
 	print("\n\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 	print(ID)
-	#topics = element[0]
-	#vocabulary = element[1]
-	#print(mapSetTopicsWithDictionary(topics, vocabulary))
-	print(getTopicsFromLDA(lda,vocabulary,10))#NumberOfWordsPerTopic=10
-	print("\n\n")
-	print(vocabulary)
+	print(getTopicsFromLDA(lda,vocabulary))
 	print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n")
 

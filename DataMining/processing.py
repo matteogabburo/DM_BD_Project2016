@@ -27,11 +27,14 @@ def getConf(conffile):
 def main(args):
 
 	if len(args) < 3:
-		print('Error, insert parameters [conf_file_path]')
+		print('Error, insert parameters [conf_file_path][out_file_path]')
 		return 0
 
 	conf_file = args[1]
 	out_file = args[2]
+
+	if len(args) == 4:
+		execution = int(args[3])
 
 	conf = getConf(conf_file)
 	
@@ -81,11 +84,14 @@ def main(args):
 	logs['date'] = str(datetime.datetime.now())
 	logs['params'] = conf
 
-	logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
+	if execution == 123 or execution == 12 or execution == 1 or execution == 13:
+		logs['m1'] = m1.run(db_host, db_port, directory, db_name, collection_name_urls, collection_name_dbstat, phase1_n_threads)
 
-	logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func, low_treshold, high_treshold, bounded_locs, phase2_n_threads, maximize_links, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
+	if execution == 123 or execution ==12 or execution == 2 or execution == 23:
+		logs['m2'] = m2.run(db_host, db_port, db_name, collection_name_urls, collection_name_dbstat, collection_name_topics, s, text_processing_func, low_treshold, high_treshold, bounded_locs, phase2_n_threads, maximize_links, max_waiting_time_http, log, lda_ntopics, lda_npasses, lda_nwords)
 
-	logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
+	if execution == 123 or execution ==13 or execution == 3 or execution == 23:
+		logs['m3'] = m3.run(db_host, db_port, db_name, collection_name_dbstat, collection_approximation_in, collection_approximation_out, bounded_locs, npartitions, nlevels, merge_selector, ntopics, nwords, s)
 
 	print(out_file)	
 
