@@ -1,35 +1,21 @@
-
 import sys
 import json
+from pyspark import SparkConf
+from pyspark import SparkContext
 
-import pymongo_spark
-# Important: activate pymongo_spark.
-pymongo_spark.activate()
-
-from pyspark import SparkConf, SparkContext
-
-sys.path.append('../libraries')
-import M1_geoIndexing.geo_indexing as m1 # module 1
-sys.path.remove('../libraries')
-
-import requests
-import spark_lda as lda
-from bs4 import BeautifulSoup
-from math import sqrt
-
-import lxml
-from lxml.html.clean import Cleaner
-
-from nltk.tokenize import RegexpTokenizer
-from stop_words import get_stop_words
-from nltk.stem.porter import PorterStemmer
-
+from math import radians, sin, asin, cos, sqrt
 import geopy
 from geopy.distance import VincentyDistance
-from math import radians, sin, asin, cos, sqrt
 
-from models.topic_clustering_matrix import Matrix
+from bs4 import BeautifulSoup
+import lxml
+import requests
+from lxml.html.clean import Cleaner
+from nltk.tokenize import RegexpTokenizer
+from stop_words import get_stop_words
 
+import pymongo_spark
+pymongo_spark.activate()
 
 def fun(x, y):
 	return x,y+1
@@ -39,169 +25,128 @@ def getConf():
 		data = json.load(data_file)
 	return data
 		
+def f_parse(args):
+
+	def isAlphabet(word):
+
+		alphabet = ['a','b','c','d','e','f','g','h','j','k','i','l','m','n','o','p','q','r','s','t','u','v','x','y','w','z','à','è','é','ì','í','ò','ó','ù','ú']
+		guard = True
+		for t in word:
+			if t not in alphabet:
+				guard = False
+		return guard
+	
+
+
+	loc = args[0]	
+	corpuses = args[1]
+
+	MINSIZE_WORD = 4
+	MAXSIZE_WORD = 15
+	MINSIZE_CHARSDOC = 100
+	MINSIZE_WORDSDOC = 50
+
+	cleaner = Cleaner()
+	cleaner.javascript = True # This is True because we want to activate the javascript filter
+	cleaner.style = True 
+	cleaner.scripts = True	
+	cleaner.comments = True
+	cleaner.links = True
+	cleaner.meta = True
+	cleaner.page_structure = True
+	cleaner.processing_instructions = True
+	cleaner.forms = True	
+	cleaner.add_nofollow = True
+
+	ret = []
+
+	for document in corpuses:
+		#html = unicodedata.normalize('NFKD', html).encode('ascii','ignore')
+		if len(document) > 0:
+			try:
+				document = lxml.html.document_fromstring(document)
+				c = cleaner.clean_html(document)
+				html = lxml.html.tostring(c)
+
+				soup = BeautifulSoup(html, 'lxml')
+				parsed_text = soup.get_text()		
+
+				if(len(parsed_text) > MINSIZE_CHARSDOC):
+					parsed_text = parsed_text.lower()	
+		
+					tokenizer = RegexpTokenizer(r'\w+')
+
+					# create English stop words list
+					en_stop = get_stop_words('en')
+					it_stop = get_stop_words('it')
+					sp_stop = get_stop_words('es')
+					ge_stop = get_stop_words('de')
+					fr_stop = get_stop_words('fr')
+
+					# Create p_stemmer of class PorterStemmer
+					#p_stemmer = PorterStemmer()
+	
+					# clean and tokenize document string
+					tokens = tokenizer.tokenize(parsed_text)
+
+					# remove stop words from tokens
+					stopped_tokens1 = [i for i in tokens if not i in en_stop]
+					stopped_tokens2 = [i for i in stopped_tokens1 if not i in it_stop]
+					stopped_tokens3 = [i for i in stopped_tokens2 if not i in sp_stop]
+					stopped_tokens4 = [i for i in stopped_tokens3 if not i in ge_stop]
+					stopped_tokens5 = [i for i in stopped_tokens4 if not i in fr_stop]
+			
+					for word in stopped_tokens5:
+						if not any(char.isdigit() for char in word):
+							if len(word) > 1:
+								#check if the word has the alphabet character
+								if isAlphabet(word):				
+									ret.append(word)
+			except:
+				print('Exception : Document empty')
+	return [loc, ret]
+
+
+
 
 def f_download(url, waiting_time):
-
-	def getUpperLevel(url):
-		try:
-			s_url = url.split('/')[2]
-		except:
-			return None		
-
-		if '?' in url:
-			array = url.rpartition('?')
-		elif len(url) > 8 and '/' in url:
-			array = url.rpartition('/')
-			if len(array[0]) <= 8:
-				return None
-		else :
-			return None
-
-		return array[0]
-
-	def html2text(html):
-
-		cleaner = Cleaner()
-		cleaner.javascript = True # This is True because we want to activate the javascript filter
-		cleaner.style = True 
-		cleaner.scripts = True	
-		cleaner.comments = True
-		cleaner.links = True
-		cleaner.meta = True
-		cleaner.page_structure = True
-		cleaner.processing_instructions = True
-		cleaner.forms = True	
-		cleaner.add_nofollow = True
-
-		#html = unicodedata.normalize('NFKD', html).encode('ascii','ignore')
-
-		try:
-			document = lxml.html.document_fromstring(html)
-			c = cleaner.clean_html(document)
-			html = lxml.html.tostring(c)
-
-			soup = BeautifulSoup(html, 'lxml')
-			parsed_text = soup.get_text()		
-
-			if(len(parsed_text) > 20):
-				return parsed_text.lower()	
-			else:
-				return None
-		except: 
-			return None
-
-	def stemm(document):
-		ret = None
-		if document != None:
-			document = document.replace('\t',' ').replace('\n',' ')
-			
-			# Remove \n and separators
-			tmp = ''
-			oldc = ''
-		
-			for c in document:
-				if c != '\n' and c != '\t':
-					if c == ' ':
-						if oldc != ' ':
-							tmp = tmp + c									
-					else :
-						tmp = tmp + c
-		
-				oldc = c
-			document = tmp
-
-			tokenizer = RegexpTokenizer(r'\w+')
-
-			# create English stop words list
-			en_stop = get_stop_words('en')
-			it_stop = get_stop_words('it')
-			sp_stop = get_stop_words('es')
-			ge_stop = get_stop_words('de')
-			fr_stop = get_stop_words('fr')
-
-			# Create p_stemmer of class PorterStemmer
-			p_stemmer = PorterStemmer()
-			
-			# clean and tokenize document string
-			raw = document.lower()
-			tokens = tokenizer.tokenize(raw)
 	
-			# remove stop words from tokens
-			stopped_tokens1 = [i for i in tokens if not i in en_stop]
-			stopped_tokens2 = [i for i in stopped_tokens1 if not i in it_stop]
-			stopped_tokens3 = [i for i in stopped_tokens2 if not i in sp_stop]
-			stopped_tokens4 = [i for i in stopped_tokens3 if not i in ge_stop]
-			stopped_tokens5 = [i for i in stopped_tokens4 if not i in fr_stop]
-		
-			# stem tokens
-			stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens5]
-	
-			# remove all the word that are meaning less
-			ret = []
-			for word in stemmed_tokens:
-				if not any(char.isdigit() for char in word):
-					if len(word) > 1:
-						ret.append(word)
-		return ret
-
-	def fallback(u, l_fails):
-		u_res = getUpperLevel(u)
-		if u_res == None:	
-			try:		
-				l_fails.append(u.split('/')[2])
-			except:
-				return (u_res,False, l_fails)
-
-			return (u_res,True, l_fails)
-		return (u_res,False, l_fails)
-
-	# MAIN MAP =============================================	
-
 	ret = []
 	l_fails = []
 	urls = url['urls']
-	for u in urls:
-		u_tmp = u
-		guard = False
-		while guard == False:		
-			
-			s_url = ''
-			try:
-				s_url = url.split('/')[2]
-			except:
-				guard = True
-			
-			if s_url not in l_fails:
-
-				try:			
-					# HTTP REQUEST
-					print(u_tmp)
-					response = requests.get(u_tmp, timeout=waiting_time)			
 	
-					# see if response is positive
+	for u in urls:
+		s_url = ''
+		try:
+			s_url = url.split('/')[2]
+		except:
+
+			guard = True
+		
+		if s_url not in l_fails:
+			try:			
+				# HTTP REQUEST
+				print(u)
+				response = requests.get(u, timeout=waiting_time)			
+				# see if response is positive
+				if 'content-type' in response.headers:
 					if response.status_code == 200 and 'text/html' in response.headers['content-type']:
 						if len(response.text) > 20: # if the page is empty		
-			
 							text = response.text
-							text = html2text(text)
-							text = stemm(text)
-
-							if text != None or len(text) > 20:
-								ret.append(text)
+							if text != None:
+								if len(text) > 20:
+									ret.append(text)
 								guard = True	
-							else:
-								u_tmp = getUpperLevel(u_tmp)
-								if u_tmp == None:
-									guard = True	
+					else:
+						l_fails.append(s_url)	
+				else:
+					l_fails.append(s_url)			
 
-						else:		
-							u_tmp, guard, l_fails = fallback(u_tmp,l_fails)
-					else:				
-						u_tmp, guard, l_fails  = fallback(u_tmp,l_fails)
-				except:
-					u_tmp, guard, l_fails = fallback(u_tmp,l_fails)
-			else:
-				guard = True
+			except:
+				print('Exception : '+u)
+			
+		else:
+			guard = True
 
 	return (url['loc'],ret)
 
@@ -417,16 +362,21 @@ def main(args):
 	# get urls for the map
 	
 	# set up parameters for reading from MongoDB via Hadoop input format
+
 	db_conf = "mongodb://"+db_host+":"+str(db_port)+"/"+db_name+"."
 	db_conf_clicks = db_conf + collection_name_urls
 	
+	print(db_conf_clicks)
+
 	# Read from DB
 	urlsRDD = sc.mongoRDD(db_conf_clicks)
 	
 	# Map Reduce
-	a = urlsRDD.map(lambda x: f_download(x,max_waiting_time)).map(lambda x: f_cellIndex(x, min_loc, max_loc, s)).collect()
-	a = lda(a)
-
+	a = urlsRDD.map(lambda x: f_download(x,max_waiting_time)).\
+		map(lambda x: f_parse(x)).\
+		map(lambda x: f_cellIndex(x, min_loc, max_loc, s)).\
+		collect()
+	
 	print('\n\n\n\n\n\nFINITO\n\n\n\n\n\n\n')
 
 

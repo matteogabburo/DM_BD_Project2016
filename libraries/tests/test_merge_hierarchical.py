@@ -232,12 +232,7 @@ def main(args):
 	'http://cool.cc/index/Top/Regional/Asia/India/Business_and_Economy',
 	'http://www.artsci.ccsu.edu/',
 	'http://cool.cc/index/Top/Reference/Education/Colleges_and_Universities/North_America/United_States/Connecticut/',
-	'http://www.kent.edu/'
-	]
-
-	'''
-	
-	
+	'http://www.kent.edu/',
 	'http://cool.cc/index/Top/Reference/Education/Colleges_and_Universities/North_America/United_States/Ohio',
 	'http://www.specialolympics.org/',
 	'http://cool.cc/index/Top/Sports/Disabled',
@@ -355,6 +350,12 @@ def main(args):
 	'http://cool.cc/index/Top/Games/Online/MUDs/Development/Codebases',
 	'http://www.tug.org/utilities/plain/cseq.html',
 	'http://cool.cc/index/Top/Computers/Software/Typesetting/TeX'
+	]
+
+	'''
+	
+	
+	
 	
 	'''
 
@@ -668,6 +669,8 @@ def avgList(l):
 	res = 0.0
 
 	l = [x for x in l if x != None and x != 0.0]
+
+	print(l)
 
 	for e in l:
 		res += float(e)
